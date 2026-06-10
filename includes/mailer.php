@@ -45,6 +45,7 @@ function send_gatepass_email($gatepass, $recipient_email, $recipient_name, $role
         $mail->Password   = $smtp_pass;
         $mail->SMTPSecure = ($smtp_secure === 'ssl') ? PHPMailer::ENCRYPTION_SMTPS : PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port       = (int)$smtp_port;
+        $mail->Timeout    = 7; // Shorter timeout to prevent 502/Gateway errors
         
         // Disable SSL verification if needed (common for local development)
         $mail->SMTPOptions = array(

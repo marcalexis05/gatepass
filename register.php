@@ -103,15 +103,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $stmt->execute([$gatepass_no]);
             $gatepass_data = $stmt->fetch();
 
-            // Send Emails (Admin and Visitor)
-            $admin_email = get_setting('admin_email', 'admin@example.com');
-            
-            // Attempt to send to visitor
-            send_gatepass_email($gatepass_data, $visitor_email, $visitor_name, 'visitor');
-            // Attempt to send to admin
-            send_gatepass_email($gatepass_data, $admin_email, 'Administrator', 'admin');
-
-            // Redirect to success screen
+            // Redirect to success screen (emails will be sent asynchronously via background fetch in success.php)
             header("Location: success.php?code=" . urlencode($gatepass_no) . "&new=1");
             exit;
 

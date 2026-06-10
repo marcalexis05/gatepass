@@ -173,6 +173,14 @@ document.addEventListener('DOMContentLoaded', () => {
         colorLight : "#ffffff",
         correctLevel : QRCode.CorrectLevel.M
     });
+
+    <?php if ($is_new): ?>
+    // Asynchronously trigger email sending in the background to avoid user-facing delays or timeouts
+    fetch("send_emails_ajax.php?code=<?php echo urlencode($gatepass_no); ?>")
+        .then(response => response.text())
+        .then(data => console.log("Asynchronous email dispatcher response:", data))
+        .catch(error => console.error("Asynchronous email dispatcher failed:", error));
+    <?php endif; ?>
 });
 </script>
 
