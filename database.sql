@@ -46,7 +46,7 @@ ON DUPLICATE KEY UPDATE `username`=`username`;
 
 -- Seed default settings
 INSERT INTO `settings` (`setting_key`, `setting_value`) VALUES
-('system_name', 'GatePass Pro'),
+('system_name', 'Concentrix Gatepass'),
 ('server_ip', 'localhost'),
 ('smtp_host', 'smtp.gmail.com'),
 ('smtp_port', '587'),

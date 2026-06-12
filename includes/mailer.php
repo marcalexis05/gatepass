@@ -26,7 +26,7 @@ function send_gatepass_email($gatepass, $recipient_email, $recipient_name, $role
     $smtp_user = get_setting('smtp_user', '');
     $smtp_pass = get_setting('smtp_pass', '');
     $admin_email = get_setting('admin_email', 'admin@example.com');
-    $system_name = get_setting('system_name', 'GatePass Pro');
+    $system_name = get_setting('system_name', 'Concentrix Gatepass');
     
     // If SMTP details are not configured, log/return false (but gracefully, so registration still works)
     if (empty($smtp_user) || empty($smtp_pass)) {

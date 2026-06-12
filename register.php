@@ -43,6 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $department = trim($_POST['custom_department'] ?? '');
     }
     $visit_date = trim($_POST['visit_date'] ?? '');
+    if (empty($visit_date)) {
+        $visit_date = date('Y-m-d');
+    }
     $visitor_signature = $_POST['visitor_signature'] ?? '';
 
     // Form Validations
@@ -58,12 +61,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     
     if (empty($purpose)) $errors['purpose'] = "Purpose of visit is required.";
     if (empty($department)) $errors['department'] = "Program/Department is required.";
-    
-    if (empty($visit_date)) {
-        $errors['visit_date'] = "Scheduled date is required.";
-    } elseif (strtotime($visit_date) < strtotime(date('Y-m-d'))) {
-        $errors['visit_date'] = "Visit date cannot be in the past.";
-    }
 
     if (empty($material_desc)) $errors['material_desc'] = "Material / Asset Description is required.";
     if (empty($material_serial)) $errors['material_serial'] = "Material Serial / S. No. is required.";
@@ -157,8 +154,8 @@ require_once __DIR__ . '/includes/header.php';
     </div>
 
     <!-- Registration Card -->
-    <div class="glass-card p-6 sm:p-8 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden">
-        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500"></div>
+    <div class="glass-card p-6 sm:p-8 rounded-3xl border border-dark-800 shadow-2xl relative">
+        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-brand-blue via-brand-teal to-brand-blue"></div>
         
         <?php if (isset($errors['db'])): ?>
             <div class="mb-6 p-4 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-300 text-sm flex items-start">
@@ -167,10 +164,10 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         <?php endif; ?>
 
-        <form action="register.php" method="POST" class="space-y-6" id="registration-form">
+        <form action="register.php" method="POST" class="space-y-6" id="registration-form" novalidate>
             <!-- Section 1: Visitor Information -->
             <div>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-4 border-b border-slate-800 pb-2">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-brand-teal mb-4 border-b border-dark-800 pb-2">
                     1. Visitor Particulars
                 </h3>
                 
@@ -181,7 +178,7 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-user text-xs"></i></span>
                             <input type="text" id="visitor_name" name="visitor_name" required value="<?php echo htmlspecialchars($visitor_name); ?>"
-                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['visitor_name']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-800 focus:border-indigo-500 focus:ring-indigo-500'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
+                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['visitor_name']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
                                    placeholder="e.g. John Doe">
                         </div>
                         <?php if (isset($errors['visitor_name'])): ?>
@@ -195,7 +192,7 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-id-badge text-xs"></i></span>
                             <input type="text" id="eid" name="eid" required value="<?php echo htmlspecialchars($eid); ?>"
-                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['eid']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-800 focus:border-indigo-500 focus:ring-indigo-500'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
+                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['eid']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
                                    placeholder="e.g. 101917108">
                         </div>
                         <?php if (isset($errors['eid'])): ?>
@@ -210,7 +207,7 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-envelope text-xs"></i></span>
                             <input type="email" id="visitor_email" name="visitor_email" required value="<?php echo htmlspecialchars($visitor_email); ?>"
-                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['visitor_email']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-800 focus:border-indigo-500 focus:ring-indigo-500'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
+                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['visitor_email']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
                                    placeholder="e.g. johndoe@gmail.com">
                         </div>
                         <?php if (isset($errors['visitor_email'])): ?>
@@ -222,7 +219,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <!-- Section 2: Visit Details -->
             <div>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-4 border-b border-slate-800 pb-2">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-brand-teal mb-4 border-b border-dark-800 pb-2">
                     2. Visit Details
                 </h3>
 
@@ -235,7 +232,7 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-users-gear text-xs"></i></span>
                             <select id="department" name="department" required
-                                    class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['department']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-800 focus:border-indigo-500 focus:ring-indigo-500'; ?> rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all appearance-none cursor-pointer">
+                                    class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['department']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all appearance-none cursor-pointer">
                                 <option value="" disabled <?php echo ($department === '') ? 'selected' : ''; ?>>Select Program/Department</option>
                                 <option value="FUBO" <?php echo $department === 'FUBO' ? 'selected' : ''; ?>>FUBO</option>
                                 <option value="BCBS" <?php echo $department === 'BCBS' ? 'selected' : ''; ?>>BCBS</option>
@@ -244,9 +241,6 @@ require_once __DIR__ . '/includes/header.php';
                                 <option value="AETNA" <?php echo $department === 'AETNA' ? 'selected' : ''; ?>>AETNA</option>
                                 <option value="Others" <?php echo ($department && !in_array($department, ['FUBO', 'BCBS', 'DTV', 'DISNEY', 'AETNA'])) ? 'selected' : ''; ?>>Others</option>
                             </select>
-                            <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
-                                <i class="fa-solid fa-chevron-down text-xs"></i>
-                            </span>
                         </div>
 
                         <!-- Custom Department Text Input (Shown when 'Others' is selected) -->
@@ -254,7 +248,7 @@ require_once __DIR__ . '/includes/header.php';
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-pen text-xs"></i></span>
                             <input type="text" id="custom_department" name="custom_department" 
                                    value="<?php echo ($department && !in_array($department, ['FUBO', 'BCBS', 'DTV', 'DISNEY', 'AETNA'])) ? htmlspecialchars($department) : ''; ?>"
-                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-slate-800 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
+                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-dark-800 focus:border-brand-teal focus:ring-brand-teal rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
                                    placeholder="Please specify program/department name">
                         </div>
 
@@ -263,17 +257,21 @@ require_once __DIR__ . '/includes/header.php';
                         <?php endif; ?>
                     </div>
 
-                    <!-- Visit Date -->
+                    <!-- Visit Date (locked to today) -->
                     <div class="space-y-1.5">
-                        <label for="visit_date" class="block text-xs font-bold text-slate-300 uppercase tracking-wide">Visit Date <span class="text-rose-500">*</span></label>
+                        <label for="visit_date_display" class="block text-xs font-bold text-slate-300 uppercase tracking-wide">Visit Date <span class="text-rose-500">*</span></label>
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-calendar-day text-xs"></i></span>
-                            <input type="date" id="visit_date" name="visit_date" required value="<?php echo htmlspecialchars($visit_date); ?>"
-                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['visit_date']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-800 focus:border-indigo-500 focus:ring-indigo-500'; ?> rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all">
+                            <input type="text" id="visit_date_display" readonly
+                                   value="<?php echo date('M d, Y'); ?>"
+                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900/50 border border-dark-800 rounded-xl text-slate-300 text-sm cursor-not-allowed select-none"
+                                   title="Visit date is automatically set to today">
+                            <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none">
+                                <i class="fa-solid fa-lock text-slate-600 text-[10px]"></i>
+                            </span>
                         </div>
-                        <?php if (isset($errors['visit_date'])): ?>
-                            <p class="text-rose-400 text-[11px]"><?php echo $errors['visit_date']; ?></p>
-                        <?php endif; ?>
+                        <!-- Hidden actual date value submitted with the form -->
+                        <input type="hidden" id="visit_date" name="visit_date" value="<?php echo date('Y-m-d'); ?>">
                     </div>
 
                     <!-- Purpose of Visit -->
@@ -282,15 +280,12 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-circle-question text-xs"></i></span>
                             <select id="purpose" name="purpose" required
-                                    class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['purpose']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-800 focus:border-indigo-500 focus:ring-indigo-500'; ?> rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all appearance-none cursor-pointer">
+                                    class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['purpose']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all appearance-none cursor-pointer">
                                 <option value="" disabled <?php echo ($purpose === '') ? 'selected' : ''; ?>>Select Purpose</option>
                                 <option value="Re-image" <?php echo $purpose === 'Re-image' ? 'selected' : ''; ?>>Re-image</option>
                                 <option value="Replacement" <?php echo $purpose === 'Replacement' ? 'selected' : ''; ?>>Replacement</option>
                                 <option value="Others" <?php echo ($purpose && !in_array($purpose, ['Re-image', 'Replacement'])) ? 'selected' : ''; ?>>Others</option>
                             </select>
-                            <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
-                                <i class="fa-solid fa-chevron-down text-xs"></i>
-                            </span>
                         </div>
 
                         <!-- Custom Purpose Text Input (Shown when 'Others' is selected) -->
@@ -298,7 +293,7 @@ require_once __DIR__ . '/includes/header.php';
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-pen text-xs"></i></span>
                             <input type="text" id="custom_purpose" name="custom_purpose"
                                    value="<?php echo ($purpose && !in_array($purpose, ['Re-image', 'Replacement'])) ? htmlspecialchars($purpose) : ''; ?>"
-                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-slate-800 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
+                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-dark-800 focus:border-brand-teal focus:ring-brand-teal rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
                                    placeholder="Please specify purpose of visit">
                         </div>
 
@@ -311,7 +306,7 @@ require_once __DIR__ . '/includes/header.php';
 
             <!-- Section 3: Material Movement & Signature -->
             <div>
-                <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-400 mb-4 border-b border-slate-800 pb-2 font-display">
+                <h3 class="text-xs font-bold uppercase tracking-wider text-brand-teal mb-4 border-b border-dark-800 pb-2 font-display">
                     3. Material Movement & Signature
                 </h3>
                 
@@ -322,16 +317,13 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-laptop text-xs"></i></span>
                             <select id="material_desc" name="material_desc" required
-                                    class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_desc']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-800 focus:border-indigo-500 focus:ring-indigo-500'; ?> rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all appearance-none cursor-pointer">
+                                    class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_desc']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all appearance-none cursor-pointer">
                                 <option value="" disabled <?php echo ($material_desc === '') ? 'selected' : ''; ?>>Select Asset Type</option>
                                 <option value="CPU" <?php echo $material_desc === 'CPU' ? 'selected' : ''; ?>>CPU</option>
                                 <option value="Laptop" <?php echo $material_desc === 'Laptop' ? 'selected' : ''; ?>>Laptop</option>
                                 <option value="Headset" <?php echo $material_desc === 'Headset' ? 'selected' : ''; ?>>Headset</option>
                                 <option value="Others" <?php echo ($material_desc && !in_array($material_desc, ['CPU', 'Laptop', 'Headset'])) ? 'selected' : ''; ?>>Others</option>
                             </select>
-                            <span class="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none text-slate-500">
-                                <i class="fa-solid fa-chevron-down text-xs"></i>
-                            </span>
                         </div>
 
                         <!-- Custom Material Desc Input (Shown when 'Others' is selected) -->
@@ -339,7 +331,7 @@ require_once __DIR__ . '/includes/header.php';
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-pen text-xs"></i></span>
                             <input type="text" id="custom_material_desc" name="custom_material_desc"
                                    value="<?php echo ($material_desc && !in_array($material_desc, ['CPU', 'Laptop', 'Headset'])) ? htmlspecialchars($material_desc) : ''; ?>"
-                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-slate-800 focus:border-indigo-500 focus:ring-indigo-500 rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
+                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-dark-800 focus:border-brand-teal focus:ring-brand-teal rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
                                    placeholder="Please specify asset description">
                         </div>
 
@@ -354,7 +346,7 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-barcode text-xs"></i></span>
                             <input type="text" id="material_serial" name="material_serial" required value="<?php echo htmlspecialchars($material_serial); ?>"
-                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_serial']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-800 focus:border-indigo-500 focus:ring-indigo-500'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
+                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_serial']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
                                    placeholder="e.g. 5CD5266N9G">
                         </div>
                         <?php if (isset($errors['material_serial'])): ?>
@@ -368,7 +360,7 @@ require_once __DIR__ . '/includes/header.php';
                         <div class="relative">
                             <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-arrow-up-1-9 text-xs"></i></span>
                             <input type="number" id="material_qty" name="material_qty" min="1" required value="<?php echo htmlspecialchars($material_qty); ?>"
-                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_qty']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-slate-800 focus:border-indigo-500 focus:ring-indigo-500'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all">
+                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_qty']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all">
                         </div>
                         <?php if (isset($errors['material_qty'])): ?>
                             <p class="text-rose-400 text-[11px]"><?php echo $errors['material_qty']; ?></p>
@@ -378,9 +370,9 @@ require_once __DIR__ . '/includes/header.php';
 
                 <div class="space-y-2">
                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide">Visitor Signature <span class="text-rose-500">*</span></label>
-                    <div class="relative bg-dark-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
+                    <div class="relative bg-dark-950 border border-dark-800 rounded-xl overflow-hidden shadow-inner">
                         <canvas id="signature-pad" class="w-full h-40 cursor-crosshair bg-slate-950 block"></canvas>
-                        <button type="button" id="clear-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-850 shadow transition-all">
+                        <button type="button" id="clear-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-dark-800 hover:bg-dark-700 text-slate-300 text-xs font-bold rounded-lg border border-dark-700 shadow transition-all">
                             <i class="fa-solid fa-eraser mr-1"></i> Clear
                         </button>
                     </div>
@@ -392,9 +384,9 @@ require_once __DIR__ . '/includes/header.php';
             </div>
 
             <!-- Submit Button -->
-            <div class="pt-4 border-t border-slate-800/80">
+            <div class="pt-4 border-t border-dark-800/85">
                 <button type="submit" id="submit-btn"
-                        class="w-full py-3 bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 active:scale-[0.99] text-white font-bold text-sm rounded-xl shadow-lg shadow-indigo-600/15 flex items-center justify-center space-x-2 transition-all">
+                        class="w-full py-3 bg-brand-teal hover:bg-[#1fd4be] active:scale-[0.99] text-dark-900 font-bold text-sm rounded-xl shadow-lg shadow-brand-teal/15 flex items-center justify-center space-x-2 transition-all">
                     <i class="fa-solid fa-circle-check"></i>
                     <span>Submit Request & Generate Pass</span>
                 </button>
@@ -403,6 +395,37 @@ require_once __DIR__ . '/includes/header.php';
                 </p>
             </div>
         </form>
+    </div>
+</div>
+
+<!-- Custom Validation Modal -->
+<div id="validation-modal" class="fixed inset-0 z-[150] hidden items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm transition-all duration-300">
+    <div class="w-full max-w-md bg-[#01222A] rounded-[28px] border border-rose-500/30 shadow-2xl p-6 sm:p-8 text-left transform scale-95 transition-transform duration-300 relative overflow-hidden">
+        <!-- Accent Glow background decoration -->
+        <div class="absolute -top-12 -left-12 w-24 h-24 bg-rose-500/10 rounded-full blur-xl pointer-events-none"></div>
+        
+        <div class="flex items-center space-x-3 mb-4 border-b border-dark-800 pb-3">
+            <div class="w-10 h-10 rounded-full bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 text-lg flex-shrink-0">
+                <i class="fa-solid fa-circle-exclamation"></i>
+            </div>
+            <div>
+                <h3 class="text-sm font-bold text-white font-display">Incomplete Request</h3>
+                <p class="text-slate-400 text-[11px]">Please fill in the required field(s):</p>
+            </div>
+        </div>
+        
+        <!-- Error List -->
+        <div class="max-h-48 overflow-y-auto mb-6 pr-2 custom-scrollbar">
+            <ul id="validation-errors-list" class="space-y-2 text-xs text-slate-300 pl-4 list-disc">
+                <!-- Errors dynamically injected here -->
+            </ul>
+        </div>
+        
+        <div class="flex justify-end pt-3 border-t border-dark-800/80">
+            <button type="button" id="validation-modal-close-btn" class="w-full sm:w-auto px-6 py-2.5 bg-rose-500/10 hover:bg-rose-500/20 border border-rose-500/30 text-rose-300 font-bold text-xs rounded-xl transition-all shadow-md">
+                <span>Go Back & Fix</span>
+            </button>
+        </div>
     </div>
 </div>
 
@@ -475,25 +498,65 @@ document.addEventListener('DOMContentLoaded', () => {
     const form = document.getElementById('registration-form');
     let drawing = false;
 
-    // Set canvas dimensions relative to display size
+    // Set canvas dimensions relative to display size without flickering
+    let lastWidth = 0;
+    let lastHeight = 0;
     function resizeCanvas() {
-        // Save temporary canvas content before resize
-        const tempImage = canvas.toDataURL();
-        canvas.width = canvas.offsetWidth;
-        canvas.height = canvas.offsetHeight;
+        const currentWidth = canvas.offsetWidth;
+        const currentHeight = canvas.offsetHeight;
+        
+        // Prevent unnecessary resets if dimensions haven't actually changed
+        if (currentWidth === lastWidth && currentHeight === lastHeight) {
+            return;
+        }
+        
+        // Use a temporary canvas to save and redraw synchronously
+        let tempCanvas = null;
+        if (lastWidth > 0 && lastHeight > 0) {
+            tempCanvas = document.createElement('canvas');
+            tempCanvas.width = canvas.width;
+            tempCanvas.height = canvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(canvas, 0, 0);
+        }
+        
+        canvas.width = currentWidth;
+        canvas.height = currentHeight;
         ctx.lineWidth = 3;
         ctx.lineCap = 'round';
         ctx.strokeStyle = '#ffffff';
         
-        // Restore signature if it was already drawn
-        if (sigInput.value) {
+        // Restore signature content synchronously if possible, fallback to image load
+        if (tempCanvas) {
+            ctx.drawImage(tempCanvas, 0, 0, currentWidth, currentHeight);
+            sigInput.value = canvas.toDataURL();
+        } else if (sigInput.value) {
             const img = new Image();
             img.onload = () => ctx.drawImage(img, 0, 0);
             img.src = sigInput.value;
         }
+        
+        lastWidth = currentWidth;
+        lastHeight = currentHeight;
     }
+    
+    // Initial size
     resizeCanvas();
     window.addEventListener('resize', resizeCanvas);
+
+    // Listen to changes from full screen modal to ensure local canvas is synchronised
+    sigInput.addEventListener('change', () => {
+        if (sigInput.value) {
+            const img = new Image();
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+            };
+            img.src = sigInput.value;
+        } else {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+        }
+    });
 
     function getPos(e) {
         const rect = canvas.getBoundingClientRect();
@@ -542,11 +605,109 @@ document.addEventListener('DOMContentLoaded', () => {
         sigInput.value = '';
     });
 
-    // Capture signature on form submit just to be safe
+    // Custom Professional Validation Modal logic
+    const validationModal = document.getElementById('validation-modal');
+    const errorsList = document.getElementById('validation-errors-list');
+    const closeValidationBtn = document.getElementById('validation-modal-close-btn');
+
+    function showValidationModal(errors) {
+        if (!validationModal || !errorsList) return;
+        errorsList.innerHTML = '';
+        errors.forEach(err => {
+            const li = document.createElement('li');
+            li.textContent = err;
+            errorsList.appendChild(li);
+        });
+        validationModal.classList.remove('hidden');
+        validationModal.classList.add('flex');
+        
+        const card = validationModal.querySelector('.transform');
+        if (card) {
+            setTimeout(() => {
+                card.classList.remove('scale-95');
+                card.classList.add('scale-100');
+            }, 10);
+        }
+    }
+
+    if (closeValidationBtn && validationModal) {
+        closeValidationBtn.addEventListener('click', () => {
+            const card = validationModal.querySelector('.transform');
+            if (card) {
+                card.classList.remove('scale-100');
+                card.classList.add('scale-95');
+            }
+            setTimeout(() => {
+                validationModal.classList.add('hidden');
+                validationModal.classList.remove('flex');
+            }, 150);
+        });
+    }
+
+    // Intercept form submit and perform custom validation
     form.addEventListener('submit', (e) => {
-        // Only allow submit if signature is drawn
-        if (!sigInput.value) {
+        const errors = [];
+        
+        const nameVal = document.getElementById('visitor_name').value.trim();
+        const eidVal = document.getElementById('eid').value.trim();
+        const emailVal = document.getElementById('visitor_email').value.trim();
+        
+        const deptVal = deptSelect.value;
+        const customDeptVal = customDeptInput.value.trim();
+        
+        const purpVal = purposeSelect.value;
+        const customPurpVal = customPurposeInput.value.trim();
+        
+        const matDescVal = materialDescSelect.value;
+        const customMatDescVal = customMaterialDescInput.value.trim();
+        
+        const serialVal = document.getElementById('material_serial').value.trim();
+        const qtyVal = parseInt(document.getElementById('material_qty').value);
+        const signatureVal = sigInput.value.trim();
+
+        if (!nameVal) errors.push("Full Name is required.");
+        if (!eidVal) errors.push("Employee ID (EID) / ID is required.");
+        
+        if (!emailVal) {
+            errors.push("Email Address is required.");
+        } else {
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(emailVal)) {
+                errors.push("Please enter a valid email address.");
+            }
+        }
+        
+        if (!deptVal) {
+            errors.push("Program/Department selection is required.");
+        } else if (deptVal === 'Others' && !customDeptVal) {
+            errors.push("Please specify the program/department name.");
+        }
+        
+        if (!purpVal) {
+            errors.push("Purpose of Visit selection is required.");
+        } else if (purpVal === 'Others' && !customPurpVal) {
+            errors.push("Please specify the purpose of visit.");
+        }
+        
+        if (!matDescVal) {
+            errors.push("Material / Asset Description selection is required.");
+        } else if (matDescVal === 'Others' && !customMatDescVal) {
+            errors.push("Please specify the asset description.");
+        }
+        
+        if (!serialVal) errors.push("Material Serial / S. No. is required.");
+        
+        if (isNaN(qtyVal) || qtyVal < 1) {
+            errors.push("Quantity must be 1 or greater.");
+        }
+        
+        if (!signatureVal) {
+            errors.push("Visitor Signature is required. Please sign in the box below.");
+        }
+
+        if (errors.length > 0) {
             e.preventDefault();
+            showValidationModal(errors);
         }
     });
 });

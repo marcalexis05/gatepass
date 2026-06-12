@@ -47,7 +47,7 @@ $page_title = "Digital Gatepass";
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<div class="max-w-xl mx-auto py-2">
+<div class="w-full md:max-w-[210mm] mx-auto px-4 py-2 min-w-0">
     <?php if ($is_new): ?>
         <!-- Success Alert Notification -->
         <div class="mb-6 p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/25 text-emerald-300 text-sm flex items-start alert-dismissible shadow-lg">
@@ -62,7 +62,7 @@ require_once __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
     <!-- Gatepass Ticket Layout -->
-    <div class="glass-card rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden mb-6 p-6 sm:p-8" id="gatepass-card">
+    <div class="glass-card rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden mb-6 p-4 sm:p-8 w-full md:w-[210mm] md:min-h-[297mm] mx-auto min-w-0" id="gatepass-card">
         <!-- Ticket Header (Concentrix Design) -->
         <div class="border-2 border-slate-800 p-4 rounded-t-2xl bg-slate-900/30 text-center relative">
             <div class="flex flex-col sm:flex-row items-center justify-between border-b border-slate-800 pb-4 mb-4 gap-4">
@@ -82,7 +82,7 @@ require_once __DIR__ . '/includes/header.php';
 
                 <!-- Right serial/date -->
                 <div class="text-right text-xs space-y-1">
-                    <div><span class="text-slate-500 uppercase tracking-widest font-bold text-[9px]">S. No.</span> <span class="font-mono font-bold text-indigo-400"><?php echo htmlspecialchars($gp['gatepass_no']); ?></span></div>
+                    <div><span class="font-mono font-bold text-indigo-400"><?php echo htmlspecialchars($gp['gatepass_no']); ?></span></div>
                     <div><span class="text-slate-500 uppercase tracking-widest font-bold text-[9px]">Date:</span> <span class="font-bold text-slate-300"><?php echo date('M d, Y', strtotime($gp['visit_date'])); ?></span></div>
                 </div>
             </div>
@@ -153,7 +153,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
         <!-- Signatures and Security Release Block (Matching Concentrix Paper Form) -->
-        <div class="border-x-2 border-b-2 border-slate-800 bg-slate-900/20 text-[10px] font-bold uppercase tracking-wider p-6 space-y-8">
+        <div class="border-x-2 border-b-2 border-slate-800 bg-slate-900/20 text-[10px] font-bold uppercase tracking-wider p-4 sm:p-6 space-y-8">
             <!-- First Row: Signatures -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center items-start">
                 <!-- Requestor Name and Signature (Left) -->
@@ -174,14 +174,14 @@ require_once __DIR__ . '/includes/header.php';
                 <!-- Authorized Manager Name and Signature (Right) -->
                 <div class="flex flex-col items-center">
                     <div class="h-16 flex items-end justify-center relative mb-1">
-                        <?php if ($gp['admin_signature']): ?>
-                            <img src="<?php echo $gp['admin_signature']; ?>" class="max-h-16 max-w-full object-contain signature-img" alt="Manager Signature">
+                        <?php if (!empty($gp['admin_signature'])): ?>
+                            <img src="<?php echo $gp['admin_signature']; ?>" class="max-h-16 max-w-full object-contain signature-img" alt="Authorized Manager Signature">
                         <?php else: ?>
-                            <span class="text-slate-600 text-[11px] italic font-extrabold tracking-widest animate-pulse">PENDING CHECK-OUT</span>
+                            <span class="text-rose-500 text-[10px] font-extrabold tracking-widest uppercase">Required</span>
                         <?php endif; ?>
                     </div>
                     <div class="w-full max-w-[280px] border-t border-slate-700 pt-1">
-                        <span class="block text-slate-200 text-[11px] font-extrabold tracking-wide mb-0.5"><?php echo $gp['admin_signature'] ? 'System Administrator' : '______________________'; ?></span>
+                        <span class="block text-slate-200 text-[11px] font-extrabold tracking-wide mb-0.5"><?php echo htmlspecialchars($gp['manager_name'] ?: '______________________'); ?></span>
                         <span class="text-slate-400 font-bold text-[9px]">Authorized Manager Name and Signature</span>
                     </div>
                 </div>
@@ -191,8 +191,10 @@ require_once __DIR__ . '/includes/header.php';
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-end pt-4">
                 <!-- Released By Security (Left) -->
                 <div class="flex flex-col items-start min-h-[60px]">
-                    <div class="h-8 flex items-center justify-start pl-8 relative mb-1">
-                        <?php if ($gp['status'] === 'Checked Out'): ?>
+                    <div class="h-16 flex items-end justify-start pl-8 relative mb-1">
+                        <?php if (!empty($gp['security_signature'])): ?>
+                            <img src="<?php echo $gp['security_signature']; ?>" class="max-h-16 max-w-full object-contain signature-img" alt="Security Signature">
+                        <?php elseif ($gp['status'] === 'Checked Out'): ?>
                             <div class="px-2 py-0.5 rounded border border-rose-500/40 text-rose-400 font-black text-[9px] tracking-widest uppercase rotate-2">
                                 RELEASED
                             </div>
@@ -205,6 +207,7 @@ require_once __DIR__ . '/includes/header.php';
                         <?php endif; ?>
                     </div>
                     <div class="w-full max-w-[250px] border-t border-slate-700 pt-1">
+                        <span class="block text-slate-200 text-[10px] font-extrabold tracking-wide mb-0.5"><?php echo htmlspecialchars($gp['security_name'] ?: '______________________'); ?></span>
                         <span class="text-slate-400 font-bold text-[9px]">Released By (Security)</span>
                     </div>
                 </div>
@@ -219,16 +222,16 @@ require_once __DIR__ . '/includes/header.php';
 
             <!-- Third Row: Date Received & Received By Details -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800/40">
-                <div class="flex items-center">
-                    <span class="text-slate-500 mr-2 text-[9px] font-bold uppercase tracking-wider">Date Asset/Item received:</span>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-1">
+                    <span class="text-slate-500 text-[9px] font-bold uppercase tracking-wider">Date Asset/Item received:</span>
                     <span class="flex-grow border-b border-dashed border-slate-800 pb-0.5 text-slate-350 font-semibold">
                         <?php echo $gp['time_in'] ? date('M d, Y', strtotime($gp['visit_date'])) : '____________________'; ?>
                     </span>
                 </div>
-                <div class="flex items-center">
-                    <span class="text-slate-500 mr-2 text-[9px] font-bold uppercase tracking-wider">Signature:</span>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-1">
+                    <span class="text-slate-500 text-[9px] font-bold uppercase tracking-wider">Signature:</span>
                     <span class="flex-grow border-b border-dashed border-slate-800 pb-0.5 text-slate-350 font-mono text-[9px] tracking-widest text-emerald-450 font-bold">
-                        <?php echo ($gp['time_in'] && !empty($gp['visitor_signature']) && $gp['visitor_signature'] !== 'N/A') ? '✓ VERIFIED' : '____________________'; ?>
+                        <?php echo ($gp['status'] === 'Checked Out' && !empty($gp['admin_signature'])) ? '✓ VERIFIED' : '____________________'; ?>
                     </span>
                 </div>
             </div>
@@ -256,18 +259,6 @@ require_once __DIR__ . '/includes/header.php';
             </div>
         </div>
 
-        <!-- Dynamic Verification QR Code (Center) -->
-        <div class="flex flex-col items-center justify-center pt-8 mt-4 no-print">
-            <p class="text-xs text-slate-400 font-medium text-center mb-4 max-w-xs">
-                Scan this QR code at the gate to verify entry/exit logs.
-            </p>
-            <div class="p-3 bg-white rounded-2xl shadow-lg inline-block">
-                <div id="ticket-qrcode"></div>
-            </div>
-            <span class="text-[10px] text-slate-500 mt-2 select-all break-all text-center max-w-xs">
-                Verify URL: <?php echo htmlspecialchars($verify_url); ?>
-            </span>
-        </div>
     </div>
 
     <!-- Print & Navigation Actions -->
@@ -287,16 +278,6 @@ require_once __DIR__ . '/includes/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Generate verify QR code for Security Guard scan
-    const verifyUrl = "<?php echo $verify_url; ?>";
-    new QRCode(document.getElementById("ticket-qrcode"), {
-        text: verifyUrl,
-        width: 140,
-        height: 140,
-        colorDark : "#0b0f19",
-        colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.M
-    });
 
     <?php if ($is_new): ?>
     // Asynchronously trigger email sending in the background to avoid user-facing delays or timeouts
@@ -332,8 +313,9 @@ document.addEventListener('DOMContentLoaded', () => {
         color: black !important;
         margin: 0 auto !important;
         padding: 10mm !important;
-        width: 100% !important;
-        max-width: 100% !important;
+        width: 190mm !important;
+        max-width: 190mm !important;
+        min-height: 277mm !important;
         box-sizing: border-box !important;
         backdrop-filter: none !important;
     }

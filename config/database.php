@@ -71,4 +71,48 @@ function update_setting($key, $value) {
         return false;
     }
 }
+
+// Auto-migrate: Ensure security_name column exists in gatepasses table
+try {
+    $pdo->query("SELECT security_name FROM gatepasses LIMIT 1");
+} catch (Exception $e) {
+    try {
+        $pdo->exec("ALTER TABLE gatepasses ADD COLUMN security_name VARCHAR(100) DEFAULT NULL");
+    } catch (Exception $ex) {
+        // Silent fallthrough
+    }
+}
+
+// Auto-migrate: Ensure checked_out_by column exists
+try {
+    $pdo->query("SELECT checked_out_by FROM gatepasses LIMIT 1");
+} catch (Exception $e) {
+    try {
+        $pdo->exec("ALTER TABLE gatepasses ADD COLUMN checked_out_by VARCHAR(50) DEFAULT NULL");
+    } catch (Exception $ex) {
+        // Silent fallthrough
+    }
+}
+
+// Auto-migrate: Ensure manager_name column exists
+try {
+    $pdo->query("SELECT manager_name FROM gatepasses LIMIT 1");
+} catch (Exception $e) {
+    try {
+        $pdo->exec("ALTER TABLE gatepasses ADD COLUMN manager_name VARCHAR(100) DEFAULT NULL");
+    } catch (Exception $ex) {
+        // Silent fallthrough
+    }
+}
+
+// Auto-migrate: Ensure security_signature column exists
+try {
+    $pdo->query("SELECT security_signature FROM gatepasses LIMIT 1");
+} catch (Exception $e) {
+    try {
+        $pdo->exec("ALTER TABLE gatepasses ADD COLUMN security_signature LONGTEXT DEFAULT NULL");
+    } catch (Exception $ex) {
+        // Silent fallthrough
+    }
+}
 ?>

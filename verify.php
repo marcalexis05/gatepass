@@ -33,19 +33,23 @@ if (!$gp) {
 
 $trigger_email = false;
 
-// Handle administrative actions if user is logged in
-if (is_logged_in()) {
+// Handle administrative actions if user is logged in or accessing via QR scanner
+if (true) {
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $post_action = trim($_POST['action'] ?? '');
         if ($post_action === 'check_out') {
-            $admin_signature = $_POST['admin_signature'] ?? '';
-            if (empty($admin_signature)) {
-                $message = "Authorized Manager's signature is required to complete check-out.";
+            $security_signature = $_POST['security_signature'] ?? '';
+            $security_name = trim($_POST['security_name'] ?? '');
+            if (empty($security_signature)) {
+                $message = "Security Signature is required to complete check-out.";
+                $message_type = 'error';
+            } elseif (empty($gp['admin_signature'])) {
+                $message = "This gatepass cannot be checked out because it has not been signed by the Authorized Manager (IT Department) yet.";
                 $message_type = 'error';
             } elseif ($gp['status'] === 'Checked In') {
                 try {
-                    $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Checked Out', time_out = CURRENT_TIME(), admin_signature = ? WHERE gatepass_no = ?");
-                    $stmt->execute([$admin_signature, $gatepass_no]);
+                    $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Checked Out', time_out = CURRENT_TIME(), security_signature = ?, security_name = ?, checked_out_by = 'Security' WHERE gatepass_no = ?");
+                    $stmt->execute([$security_signature, $security_name, $gatepass_no]);
                     $message = "Visitor has been CHECKED OUT at " . date('h:i A');
                     $message_type = 'success';
                     $trigger_email = true;
@@ -62,24 +66,72 @@ if (is_logged_in()) {
                 $message = "This gatepass is not in a Checked In state and cannot be checked out.";
                 $message_type = 'error';
             }
+        } elseif ($post_action === 'approve') {
+            $manager_name = trim($_POST['manager_name'] ?? '');
+            $manager_signature = $_POST['manager_signature'] ?? '';
+            if (empty($manager_name) || empty($manager_signature)) {
+                $message = "Authorized Manager Name and Signature are required to approve the request.";
+                $message_type = 'error';
+            } elseif ($gp['status'] === 'Pending') {
+                try {
+                    $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Approved', manager_name = ?, admin_signature = ? WHERE gatepass_no = ?");
+                    $stmt->execute([$manager_name, $manager_signature, $gatepass_no]);
+                    $message = "Gatepass successfully APPROVED and Signed.";
+                    $message_type = 'success';
+                    
+                    // Reload gatepass record
+                    $stmt = $pdo->prepare("SELECT * FROM gatepasses WHERE gatepass_no = ?");
+                    $stmt->execute([$gatepass_no]);
+                    $gp = $stmt->fetch();
+                } catch (Exception $e) {
+                    $message = "Failed to approve gatepass: " . $e->getMessage();
+                    $message_type = 'error';
+                }
+            } else {
+                $message = "This gatepass is not in a Pending state.";
+                $message_type = 'error';
+            }
+        } elseif ($post_action === 'sign_manager') {
+            $manager_name = trim($_POST['manager_name'] ?? '');
+            $manager_signature = $_POST['manager_signature'] ?? '';
+            if (empty($manager_name) || empty($manager_signature)) {
+                $message = "Authorized Manager Name and Signature are required.";
+                $message_type = 'error';
+            } else {
+                try {
+                    $stmt = $pdo->prepare("UPDATE gatepasses SET manager_name = ?, admin_signature = ? WHERE gatepass_no = ?");
+                    $stmt->execute([$manager_name, $manager_signature, $gatepass_no]);
+                    $message = "Authorized Manager signature saved successfully.";
+                    $message_type = 'success';
+                    
+                    // Reload gatepass record
+                    $stmt = $pdo->prepare("SELECT * FROM gatepasses WHERE gatepass_no = ?");
+                    $stmt->execute([$gatepass_no]);
+                    $gp = $stmt->fetch();
+                } catch (Exception $e) {
+                    $message = "Failed to save manager signature: " . $e->getMessage();
+                    $message_type = 'error';
+                }
+            }
         }
     } elseif (!empty($action)) {
         try {
-            $allowed_actions = ['approve', 'reject', 'check_in'];
+            $allowed_actions = ['reject', 'check_in'];
             if (in_array($action, $allowed_actions)) {
-                if ($action === 'approve') {
-                    $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Approved' WHERE gatepass_no = ?");
-                    $stmt->execute([$gatepass_no]);
-                    $message = "Gatepass successfully APPROVED.";
-                } elseif ($action === 'reject') {
+                if ($action === 'reject') {
                     $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Rejected' WHERE gatepass_no = ?");
                     $stmt->execute([$gatepass_no]);
                     $message = "Gatepass successfully REJECTED.";
                     $message_type = 'warning';
                 } elseif ($action === 'check_in') {
-                    $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Checked In', time_in = CURRENT_TIME() WHERE gatepass_no = ?");
-                    $stmt->execute([$gatepass_no]);
-                    $message = "Visitor has been CHECKED IN at " . date('h:i A');
+                    if (empty($gp['admin_signature'])) {
+                        $message = "Visitor cannot be checked in because the gatepass has not been signed by the Authorized Manager (IT Department) yet.";
+                        $message_type = 'error';
+                    } else {
+                        $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Checked In', time_in = CURRENT_TIME() WHERE gatepass_no = ?");
+                        $stmt->execute([$gatepass_no]);
+                        $message = "Visitor has been CHECKED IN at " . date('h:i A');
+                    }
                 }
                 
                 // Reload the gatepass record
@@ -108,7 +160,7 @@ $page_title = "Verify Visitor Pass";
 require_once __DIR__ . '/includes/header.php';
 ?>
 
-<div class="max-w-xl mx-auto py-4">
+<div class="w-full md:max-w-[210mm] mx-auto px-4 py-4 min-w-0">
     <!-- Breadcrumb -->
     <a href="<?php echo is_logged_in() ? 'admin/dashboard.php' : 'index.php'; ?>" class="text-sm font-semibold text-slate-400 hover:text-white transition-colors flex items-center space-x-1.5 mb-6 group">
         <i class="fa-solid fa-chevron-left group-hover:-translate-x-1 transition-transform"></i>
@@ -135,7 +187,7 @@ require_once __DIR__ . '/includes/header.php';
     <?php endif; ?>
 
     <!-- Gatepass Scanner Panel -->
-    <div class="glass-card rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden mb-6 p-6 sm:p-8" id="gatepass-card">
+    <div class="glass-card rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden mb-6 p-4 sm:p-8 w-full md:w-[210mm] md:min-h-[297mm] mx-auto min-w-0" id="gatepass-card">
         <!-- Ticket Header (Concentrix Design) -->
         <div class="border-2 border-slate-800 p-4 rounded-t-2xl bg-slate-900/30 text-center relative">
             <div class="flex flex-col sm:flex-row items-center justify-between border-b border-slate-800 pb-4 mb-4 gap-4">
@@ -155,7 +207,7 @@ require_once __DIR__ . '/includes/header.php';
 
                 <!-- Right serial/date -->
                 <div class="text-right text-xs space-y-1">
-                    <div><span class="text-slate-500 uppercase tracking-widest font-bold text-[9px]">S. No.</span> <span class="font-mono font-bold text-indigo-400"><?php echo htmlspecialchars($gp['gatepass_no']); ?></span></div>
+                    <div><span class="font-mono font-bold text-indigo-400"><?php echo htmlspecialchars($gp['gatepass_no']); ?></span></div>
                     <div><span class="text-slate-500 uppercase tracking-widest font-bold text-[9px]">Date:</span> <span class="font-bold text-slate-300"><?php echo date('M d, Y', strtotime($gp['visit_date'])); ?></span></div>
                 </div>
             </div>
@@ -225,7 +277,7 @@ require_once __DIR__ . '/includes/header.php';
         </div>
 
         <!-- Signatures and Security Release Block (Matching Concentrix Paper Form) -->
-        <div class="border-x-2 border-b-2 border-slate-800 bg-slate-900/20 text-[10px] font-bold uppercase tracking-wider p-6 space-y-8">
+        <div class="border-x-2 border-b-2 border-slate-800 bg-slate-900/20 text-[10px] font-bold uppercase tracking-wider p-4 sm:p-6 space-y-8">
             <!-- First Row: Signatures -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center items-start">
                 <!-- Requestor Name and Signature (Left) -->
@@ -246,14 +298,14 @@ require_once __DIR__ . '/includes/header.php';
                 <!-- Authorized Manager Name and Signature (Right) -->
                 <div class="flex flex-col items-center">
                     <div class="h-16 flex items-end justify-center relative mb-1">
-                        <?php if ($gp['admin_signature']): ?>
-                            <img src="<?php echo $gp['admin_signature']; ?>" class="max-h-16 max-w-full object-contain signature-img" alt="Manager Signature">
+                        <?php if (!empty($gp['admin_signature'])): ?>
+                            <img src="<?php echo $gp['admin_signature']; ?>" class="max-h-16 max-w-full object-contain signature-img" alt="Authorized Manager Signature">
                         <?php else: ?>
-                            <span class="text-slate-600 text-[11px] italic font-extrabold tracking-widest animate-pulse">PENDING CHECK-OUT</span>
+                            <span class="text-rose-500 text-[10px] font-extrabold tracking-widest uppercase">Required</span>
                         <?php endif; ?>
                     </div>
                     <div class="w-full max-w-[280px] border-t border-slate-700 pt-1">
-                        <span class="block text-slate-200 text-[11px] font-extrabold tracking-wide mb-0.5"><?php echo $gp['admin_signature'] ? 'System Administrator' : '______________________'; ?></span>
+                        <span class="block text-slate-200 text-[11px] font-extrabold tracking-wide mb-0.5"><?php echo htmlspecialchars($gp['manager_name'] ?: '______________________'); ?></span>
                         <span class="text-slate-400 font-bold text-[9px]">Authorized Manager Name and Signature</span>
                     </div>
                 </div>
@@ -263,8 +315,10 @@ require_once __DIR__ . '/includes/header.php';
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-end pt-4">
                 <!-- Released By Security (Left) -->
                 <div class="flex flex-col items-start min-h-[60px]">
-                    <div class="h-8 flex items-center justify-start pl-8 relative mb-1">
-                        <?php if ($gp['status'] === 'Checked Out'): ?>
+                    <div class="h-16 flex items-end justify-start pl-8 relative mb-1">
+                        <?php if (!empty($gp['security_signature'])): ?>
+                            <img src="<?php echo $gp['security_signature']; ?>" class="max-h-16 max-w-full object-contain signature-img" alt="Security Signature">
+                        <?php elseif ($gp['status'] === 'Checked Out'): ?>
                             <div class="px-2 py-0.5 rounded border border-rose-500/40 text-rose-400 font-black text-[9px] tracking-widest uppercase rotate-2">
                                 RELEASED
                             </div>
@@ -277,6 +331,7 @@ require_once __DIR__ . '/includes/header.php';
                         <?php endif; ?>
                     </div>
                     <div class="w-full max-w-[250px] border-t border-slate-700 pt-1">
+                        <span class="block text-slate-200 text-[10px] font-extrabold tracking-wide mb-0.5"><?php echo htmlspecialchars($gp['security_name'] ?: '______________________'); ?></span>
                         <span class="text-slate-400 font-bold text-[9px]">Released By (Security)</span>
                     </div>
                 </div>
@@ -291,16 +346,16 @@ require_once __DIR__ . '/includes/header.php';
 
             <!-- Third Row: Date Received & Received By Details -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800/40">
-                <div class="flex items-center">
-                    <span class="text-slate-500 mr-2 text-[9px] font-bold uppercase tracking-wider">Date Asset/Item received:</span>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-1">
+                    <span class="text-slate-500 text-[9px] font-bold uppercase tracking-wider">Date Asset/Item received:</span>
                     <span class="flex-grow border-b border-dashed border-slate-800 pb-0.5 text-slate-350 font-semibold">
                         <?php echo $gp['time_in'] ? date('M d, Y', strtotime($gp['visit_date'])) : '____________________'; ?>
                     </span>
                 </div>
-                <div class="flex items-center">
-                    <span class="text-slate-500 mr-2 text-[9px] font-bold uppercase tracking-wider">Signature:</span>
+                <div class="flex flex-col sm:flex-row sm:items-center gap-1">
+                    <span class="text-slate-500 text-[9px] font-bold uppercase tracking-wider">Signature:</span>
                     <span class="flex-grow border-b border-dashed border-slate-800 pb-0.5 text-slate-350 font-mono text-[9px] tracking-widest text-emerald-450 font-bold">
-                        <?php echo ($gp['time_in'] && !empty($gp['visitor_signature']) && $gp['visitor_signature'] !== 'N/A') ? '✓ VERIFIED' : '____________________'; ?>
+                        <?php echo ($gp['status'] === 'Checked Out' && !empty($gp['admin_signature'])) ? '✓ VERIFIED' : '____________________'; ?>
                     </span>
                 </div>
             </div>
@@ -330,55 +385,163 @@ require_once __DIR__ . '/includes/header.php';
 
         <!-- Administration Control Panel -->
         <div class="pt-6 border-t border-slate-800/80">
-            <?php if (is_logged_in()): ?>
+            <?php if (true): // Allow actions directly via QR verification link ?>
                 <span class="block text-[10px] text-indigo-400 font-extrabold uppercase tracking-widest mb-4 text-center">Admin Controls</span>
                 
                 <div class="grid grid-cols-2 gap-3">
                     <!-- Pending / Approve / Reject controls -->
                     <?php if ($gp['status'] === 'Pending'): ?>
-                        <a href="verify.php?code=<?php echo urlencode($gatepass_no); ?>&action=approve"
-                           class="py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all">
-                            <i class="fa-solid fa-circle-check"></i>
-                            <span>Approve Request</span>
-                        </a>
-                        <a href="verify.php?code=<?php echo urlencode($gatepass_no); ?>&action=reject"
-                           class="py-2.5 bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all">
-                            <i class="fa-solid fa-circle-xmark"></i>
-                            <span>Reject Request</span>
-                        </a>
+                        <div class="col-span-2 space-y-4">
+                            <!-- Reject action -->
+                            <div class="flex justify-end">
+                                <a href="verify.php?code=<?php echo urlencode($gatepass_no); ?>&action=reject"
+                                   class="px-4 py-2 bg-rose-950/20 hover:bg-rose-900/30 text-rose-400 border border-rose-900/30 text-xs font-bold rounded-xl transition-all flex items-center gap-1.5">
+                                    <i class="fa-solid fa-circle-xmark"></i>
+                                    <span>Reject Request</span>
+                                </a>
+                            </div>
+
+                            <!-- Approval Form with Signature -->
+                            <form action="verify.php?code=<?php echo urlencode($gatepass_no); ?>" method="POST" id="admin-approve-form" class="space-y-4 text-left border border-slate-800/80 p-5 rounded-2xl bg-slate-900/10">
+                                <input type="hidden" name="action" value="approve">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2 border-b border-slate-800/60 pb-1.5 font-display">Authorized Manager Approval</h4>
+                                
+                                <div class="space-y-3">
+                                    <div class="space-y-1.5">
+                                        <label for="manager_name" class="block text-xs font-bold text-slate-350 uppercase tracking-wide">Manager Full Name <span class="text-rose-500">*</span></label>
+                                        <input type="text" name="manager_name" id="manager_name" required placeholder="e.g. MARC ALEXIS EVANGELISTA"
+                                               class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <label class="block text-xs font-bold text-slate-355 uppercase tracking-wide">Manager Signature <span class="text-rose-500">*</span></label>
+                                        <div class="relative bg-dark-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
+                                             <canvas id="admin-approve-signature-pad" class="w-full h-32 cursor-crosshair bg-slate-950 block"></canvas>
+                                             <button type="button" id="clear-admin-approve-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all">
+                                                 <i class="fa-solid fa-eraser mr-1"></i> Clear
+                                             </button>
+                                        </div>
+                                        <input type="hidden" id="manager_signature" name="manager_signature" required>
+                                    </div>
+                                </div>
+
+                                <button type="submit" id="admin-approve-btn" disabled
+                                        class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all opacity-50 cursor-not-allowed pointer-events-none">
+                                    <i class="fa-solid fa-circle-check"></i>
+                                    <span>Approve & Sign Request</span>
+                                </button>
+                            </form>
+                        </div>
                     <?php endif; ?>
 
                     <!-- Check In Control -->
                     <?php if ($gp['status'] === 'Approved'): ?>
-                        <a href="verify.php?code=<?php echo urlencode($gatepass_no); ?>&action=check_in"
-                           class="col-span-2 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all">
-                            <i class="fa-solid fa-right-to-bracket"></i>
-                            <span>Check In Visitor</span>
-                        </a>
+                        <?php if (empty($gp['admin_signature'])): ?>
+                            <form action="verify.php?code=<?php echo urlencode($gatepass_no); ?>" method="POST" id="admin-approve-form" class="col-span-2 space-y-4 text-left border border-slate-800/80 p-5 rounded-2xl bg-slate-900/10">
+                                <input type="hidden" name="action" value="sign_manager">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2 border-b border-slate-800/60 pb-1.5 font-display">Authorized Manager Signature Required</h4>
+                                
+                                <div class="space-y-3">
+                                    <div class="space-y-1.5">
+                                        <label for="manager_name" class="block text-xs font-bold text-slate-355 uppercase tracking-wide">Manager Full Name <span class="text-rose-500">*</span></label>
+                                        <input type="text" name="manager_name" id="manager_name" required placeholder="e.g. MARC ALEXIS EVANGELISTA"
+                                               class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                                    </div>
+
+                                    <div class="space-y-1.5">
+                                        <label class="block text-xs font-bold text-slate-355 uppercase tracking-wide">Manager Signature <span class="text-rose-500">*</span></label>
+                                        <div class="relative bg-dark-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
+                                             <canvas id="admin-approve-signature-pad" class="w-full h-32 cursor-crosshair bg-slate-950 block"></canvas>
+                                             <button type="button" id="clear-admin-approve-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all">
+                                                 <i class="fa-solid fa-eraser mr-1"></i> Clear
+                                             </button>
+                                        </div>
+                                        <input type="hidden" id="manager_signature" name="manager_signature" required>
+                                    </div>
+                                </div>
+
+                                <button type="submit" id="admin-approve-btn" disabled
+                                        class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all opacity-50 cursor-not-allowed pointer-events-none">
+                                    <i class="fa-solid fa-signature"></i>
+                                    <span>Sign Gatepass</span>
+                                </button>
+                            </form>
+                        <?php else: ?>
+                            <a href="verify.php?code=<?php echo urlencode($gatepass_no); ?>&action=check_in"
+                               class="col-span-2 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all">
+                                <i class="fa-solid fa-right-to-bracket"></i>
+                                <span>Check In Visitor</span>
+                            </a>
+                        <?php endif; ?>
                     <?php endif; ?>
 
                     <!-- Check Out Form with Signature Pad -->
                     <?php if ($gp['status'] === 'Checked In'): ?>
-                        <form action="verify.php?code=<?php echo urlencode($gatepass_no); ?>" method="POST" id="admin-checkout-form" class="col-span-2 space-y-4 text-left">
-                            <input type="hidden" name="action" value="check_out">
-                            
-                            <div class="space-y-2">
-                                <label class="block text-xs font-bold text-slate-350 uppercase tracking-wide font-display">Authorized Manager Name & Signature <span class="text-rose-500">*</span></label>
-                                <div class="relative bg-dark-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
-                                    <canvas id="admin-checkout-signature-pad" class="w-full h-32 cursor-crosshair bg-slate-950 block"></canvas>
-                                    <button type="button" id="clear-admin-checkout-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all">
-                                        <i class="fa-solid fa-eraser mr-1"></i> Clear
-                                    </button>
-                                </div>
-                                <input type="hidden" id="admin_signature" name="admin_signature">
-                            </div>
+                        <?php if (empty($gp['admin_signature'])): ?>
+                            <form action="verify.php?code=<?php echo urlencode($gatepass_no); ?>" method="POST" id="admin-approve-form" class="col-span-2 space-y-4 text-left border border-slate-800/80 p-5 rounded-2xl bg-slate-900/10">
+                                <input type="hidden" name="action" value="sign_manager">
+                                <h4 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2 border-b border-slate-800/60 pb-1.5 font-display">Authorized Manager Signature Required</h4>
+                                
+                                <div class="space-y-3">
+                                    <div class="space-y-1.5">
+                                        <label for="manager_name" class="block text-xs font-bold text-slate-355 uppercase tracking-wide">Manager Full Name <span class="text-rose-500">*</span></label>
+                                        <input type="text" name="manager_name" id="manager_name" required placeholder="e.g. MARC ALEXIS EVANGELISTA"
+                                               class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                                    </div>
 
-                            <button type="submit"
-                                    class="w-full py-2.5 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all shadow-lg shadow-rose-600/15">
-                                <i class="fa-solid fa-right-from-bracket"></i>
-                                <span>Verify & Check Out Visitor</span>
-                            </button>
-                        </form>
+                                    <div class="space-y-1.5">
+                                        <label class="block text-xs font-bold text-slate-355 uppercase tracking-wide">Manager Signature <span class="text-rose-500">*</span></label>
+                                        <div class="relative bg-dark-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
+                                             <canvas id="admin-approve-signature-pad" class="w-full h-32 cursor-crosshair bg-slate-950 block"></canvas>
+                                             <button type="button" id="clear-admin-approve-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all">
+                                                 <i class="fa-solid fa-eraser mr-1"></i> Clear
+                                             </button>
+                                        </div>
+                                        <input type="hidden" id="manager_signature" name="manager_signature" required>
+                                    </div>
+                                </div>
+
+                                <button type="submit" id="admin-approve-btn" disabled
+                                        class="w-full py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all opacity-50 cursor-not-allowed pointer-events-none">
+                                    <i class="fa-solid fa-signature"></i>
+                                    <span>Sign Gatepass</span>
+                                </button>
+                            </form>
+                        <?php else: ?>
+                            <form action="verify.php?code=<?php echo urlencode($gatepass_no); ?>" method="POST" id="admin-checkout-form" class="col-span-2 space-y-4 text-left">
+                                <input type="hidden" name="action" value="check_out">
+                                
+                                <div class="space-y-4">
+                                    <!-- Name Input Field -->
+                                    <div class="space-y-2">
+                                        <label class="block text-xs font-bold text-slate-355 uppercase tracking-wide font-display">
+                                            Security Guard Name <span class="text-rose-500 md:inline hidden">*</span>
+                                        </label>
+                                        <input type="text" name="security_name" id="security_name" placeholder="Enter Security Name"
+                                               class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all text-xs">
+                                    </div>
+
+                                    <div class="space-y-2">
+                                        <label class="block text-xs font-bold text-slate-355 uppercase tracking-wide font-display">
+                                            Security Signature <span class="text-rose-500">*</span>
+                                        </label>
+                                        <div class="relative bg-dark-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
+                                             <canvas id="admin-checkout-signature-pad" class="w-full h-32 cursor-crosshair bg-slate-950 block"></canvas>
+                                             <button type="button" id="clear-admin-checkout-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all">
+                                                 <i class="fa-solid fa-eraser mr-1"></i> Clear
+                                             </button>
+                                        </div>
+                                        <input type="hidden" id="security_signature" name="security_signature" required>
+                                    </div>
+                                </div>
+
+                                <button type="submit" id="admin-checkout-btn" disabled
+                                        class="w-full py-2.5 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all shadow-lg shadow-rose-600/15 opacity-50 cursor-not-allowed pointer-events-none">
+                                    <i class="fa-solid fa-right-from-bracket"></i>
+                                    <span>Verify & Check Out Visitor</span>
+                                </button>
+                            </form>
+                        <?php endif; ?>
                     <?php endif; ?>
 
                     <!-- Terminal status closed states -->
@@ -433,8 +596,9 @@ require_once __DIR__ . '/includes/header.php';
         color: black !important;
         margin: 0 auto !important;
         padding: 10mm !important;
-        width: 100% !important;
-        max-width: 100% !important;
+        width: 190mm !important;
+        max-width: 190mm !important;
+        min-height: 277mm !important;
         box-sizing: border-box !important;
         backdrop-filter: none !important;
     }
@@ -489,36 +653,63 @@ require_once __DIR__ . '/includes/header.php';
 }
 </style>
 
-<?php if (is_logged_in() && $gp['status'] === 'Checked In'): ?>
+<?php if (true): // Allow signature script execution directly via QR verification link ?>
 <script>
-document.addEventListener('DOMContentLoaded', () => {
-    // Admin signature pad setup
-    const canvas = document.getElementById('admin-checkout-signature-pad');
-    if (canvas) {
-        const ctx = canvas.getContext('2d');
-        const clearBtn = document.getElementById('clear-admin-checkout-sig');
-        const sigInput = document.getElementById('admin_signature');
-        const form = document.getElementById('admin-checkout-form');
+function initVerifySignatures() {
+    // Setup for Manager Approval Signature Pad
+    const approveCanvas = document.getElementById('admin-approve-signature-pad');
+    if (approveCanvas) {
+        const ctx = approveCanvas.getContext('2d');
+        const clearBtn = document.getElementById('clear-admin-approve-sig');
+        const sigInput = document.getElementById('manager_signature');
+        const form = document.getElementById('admin-approve-form');
         let drawing = false;
 
+        let lastWidth = 0;
+        let lastHeight = 0;
         function resizeCanvas() {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            const currentWidth = approveCanvas.offsetWidth;
+            const currentHeight = approveCanvas.offsetHeight;
+            
+            if (currentWidth === lastWidth && currentHeight === lastHeight) {
+                return;
+            }
+            
+            let tempCanvas = null;
+            if (lastWidth > 0 && lastHeight > 0) {
+                tempCanvas = document.createElement('canvas');
+                tempCanvas.width = approveCanvas.width;
+                tempCanvas.height = approveCanvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(approveCanvas, 0, 0);
+            }
+            
+            approveCanvas.width = currentWidth;
+            approveCanvas.height = currentHeight;
             ctx.lineWidth = 3;
             ctx.lineCap = 'round';
             ctx.strokeStyle = '#ffffff';
+            
+            if (tempCanvas) {
+                ctx.drawImage(tempCanvas, 0, 0, currentWidth, currentHeight);
+                sigInput.value = approveCanvas.toDataURL();
+            } else if (sigInput.value) {
+                const img = new Image();
+                img.onload = () => ctx.drawImage(img, 0, 0);
+                img.src = sigInput.value;
+            }
+            
+            lastWidth = currentWidth;
+            lastHeight = currentHeight;
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
 
         function getPos(e) {
-            const rect = canvas.getBoundingClientRect();
-            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
-            return {
-                x: clientX - rect.left,
-                y: clientY - rect.top
-            };
+            const rect = approveCanvas.getBoundingClientRect();
+            const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
         }
 
         function startDrawing(e) {
@@ -540,32 +731,186 @@ document.addEventListener('DOMContentLoaded', () => {
         function stopDrawing() {
             if (drawing) {
                 drawing = false;
-                sigInput.value = canvas.toDataURL();
+                sigInput.value = approveCanvas.toDataURL();
             }
         }
 
-        canvas.addEventListener('mousedown', startDrawing);
-        canvas.addEventListener('mousemove', draw);
-        canvas.addEventListener('mouseup', stopDrawing);
-        canvas.addEventListener('mouseleave', stopDrawing);
+        approveCanvas.addEventListener('mousedown', startDrawing);
+        approveCanvas.addEventListener('mousemove', draw);
+        approveCanvas.addEventListener('mouseup', stopDrawing);
+        approveCanvas.addEventListener('mouseleave', stopDrawing);
 
-        canvas.addEventListener('touchstart', startDrawing, { passive: false });
-        canvas.addEventListener('touchmove', draw, { passive: false });
-        canvas.addEventListener('touchend', stopDrawing);
+        approveCanvas.addEventListener('touchstart', startDrawing, { passive: false });
+        approveCanvas.addEventListener('touchmove', draw, { passive: false });
+        approveCanvas.addEventListener('touchend', stopDrawing);
 
+        const updateBtn = () => {
+            const btn = document.getElementById('admin-approve-btn');
+            if (btn) {
+                if (sigInput.value) {
+                    btn.removeAttribute('disabled');
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                } else {
+                    btn.setAttribute('disabled', 'true');
+                    btn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                }
+            }
+        };
+
+        approveCanvas.addEventListener('mouseup', updateBtn);
+        approveCanvas.addEventListener('touchend', updateBtn);
         clearBtn.addEventListener('click', () => {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.clearRect(0, 0, approveCanvas.width, approveCanvas.height);
             sigInput.value = '';
+            updateBtn();
         });
+        sigInput.addEventListener('change', updateBtn);
+        updateBtn();
 
         form.addEventListener('submit', (e) => {
+            const nameInput = document.getElementById('manager_name');
+            if (!nameInput || !nameInput.value.trim()) {
+                e.preventDefault();
+                alert("Manager Name is required.");
+                return;
+            }
             if (!sigInput.value) {
                 e.preventDefault();
-                alert("Manager/Authorized Signature is required to complete check-out.");
+                alert("Signature is required for approval.");
             }
         });
     }
-});
+
+    // Setup for Security Checkout Signature Pad
+    const checkoutCanvas = document.getElementById('admin-checkout-signature-pad');
+    if (checkoutCanvas) {
+        const ctx = checkoutCanvas.getContext('2d');
+        const clearBtn = document.getElementById('clear-admin-checkout-sig');
+        const sigInput = document.getElementById('security_signature');
+        const form = document.getElementById('admin-checkout-form');
+        let drawing = false;
+
+        let lastWidth = 0;
+        let lastHeight = 0;
+        function resizeCanvas() {
+            const currentWidth = checkoutCanvas.offsetWidth;
+            const currentHeight = checkoutCanvas.offsetHeight;
+            
+            if (currentWidth === lastWidth && currentHeight === lastHeight) {
+                return;
+            }
+            
+            let tempCanvas = null;
+            if (lastWidth > 0 && lastHeight > 0) {
+                tempCanvas = document.createElement('canvas');
+                tempCanvas.width = checkoutCanvas.width;
+                tempCanvas.height = checkoutCanvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(checkoutCanvas, 0, 0);
+            }
+            
+            checkoutCanvas.width = currentWidth;
+            checkoutCanvas.height = currentHeight;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#ffffff';
+            
+            if (tempCanvas) {
+                ctx.drawImage(tempCanvas, 0, 0, currentWidth, currentHeight);
+                sigInput.value = checkoutCanvas.toDataURL();
+            } else if (sigInput.value) {
+                const img = new Image();
+                img.onload = () => ctx.drawImage(img, 0, 0);
+                img.src = sigInput.value;
+            }
+            
+            lastWidth = currentWidth;
+            lastHeight = currentHeight;
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        function getPos(e) {
+            const rect = checkoutCanvas.getBoundingClientRect();
+            const clientX = e.touches && e.touches.length > 0 ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches && e.touches.length > 0 ? e.touches[0].clientY : e.clientY;
+            return { x: clientX - rect.left, y: clientY - rect.top };
+        }
+
+        function startDrawing(e) {
+            drawing = true;
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            e.preventDefault();
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            const pos = getPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            e.preventDefault();
+        }
+
+        function stopDrawing() {
+            if (drawing) {
+                drawing = false;
+                sigInput.value = checkoutCanvas.toDataURL();
+            }
+        }
+
+        checkoutCanvas.addEventListener('mousedown', startDrawing);
+        checkoutCanvas.addEventListener('mousemove', draw);
+        checkoutCanvas.addEventListener('mouseup', stopDrawing);
+        checkoutCanvas.addEventListener('mouseleave', stopDrawing);
+
+        checkoutCanvas.addEventListener('touchstart', startDrawing, { passive: false });
+        checkoutCanvas.addEventListener('touchmove', draw, { passive: false });
+        checkoutCanvas.addEventListener('touchend', stopDrawing);
+
+        const updateBtn = () => {
+            const btn = document.getElementById('admin-checkout-btn');
+            if (btn) {
+                if (sigInput.value) {
+                    btn.removeAttribute('disabled');
+                    btn.classList.remove('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                } else {
+                    btn.setAttribute('disabled', 'true');
+                    btn.classList.add('opacity-50', 'cursor-not-allowed', 'pointer-events-none');
+                }
+            }
+        };
+
+        checkoutCanvas.addEventListener('mouseup', updateBtn);
+        checkoutCanvas.addEventListener('touchend', updateBtn);
+        clearBtn.addEventListener('click', () => {
+            ctx.clearRect(0, 0, checkoutCanvas.width, checkoutCanvas.height);
+            sigInput.value = '';
+            updateBtn();
+        });
+        sigInput.addEventListener('change', updateBtn);
+        updateBtn();
+
+        form.addEventListener('submit', (e) => {
+            const nameInput = document.getElementById('security_name');
+            if (window.innerWidth >= 768 && (!nameInput || !nameInput.value.trim())) {
+                e.preventDefault();
+                alert("Security Guard Name is required to complete check-out.");
+                return;
+            }
+            if (!sigInput.value) {
+                e.preventDefault();
+                alert("Signature is required to complete check-out.");
+            }
+        });
+    }
+}
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initVerifySignatures);
+} else {
+    initVerifySignatures();
+}
 </script>
 <?php endif; ?>
 
