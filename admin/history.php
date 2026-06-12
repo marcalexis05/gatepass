@@ -111,9 +111,9 @@ $status_configs = [
 
             <!-- Department Filter -->
             <div class="space-y-1.5">
-                <label class="block font-bold text-slate-400 uppercase tracking-wider">Department</label>
+                <label class="block font-bold text-slate-400 uppercase tracking-wider">Program/Department</label>
                 <select name="department" class="w-full px-3 py-2 bg-dark-900 border border-slate-800 rounded-xl text-white focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition-all text-xs cursor-pointer">
-                    <option value="">All Departments</option>
+                    <option value="">All Programs/Departments</option>
                     <?php foreach ($departments as $dept): ?>
                         <option value="<?php echo htmlspecialchars($dept); ?>" <?php echo $dept_filter === $dept ? 'selected' : ''; ?>>
                             <?php echo htmlspecialchars($dept); ?>
@@ -158,8 +158,8 @@ $status_configs = [
                     <tr class="border-b border-slate-800/80 bg-slate-900/10 text-slate-400 text-xs uppercase tracking-wider font-bold">
                         <th class="py-4 px-6">Gatepass No</th>
                         <th class="py-4 px-6">Visitor Info</th>
-                        <th class="py-4 px-6">Organization</th>
-                        <th class="py-4 px-6">Host / Dept</th>
+                        <th class="py-4 px-6">Program/Department</th>
+                        <th class="py-4 px-6">Transaction Details</th>
                         <th class="py-4 px-6">Scheduled Date</th>
                         <th class="py-4 px-6">Access Logs</th>
                         <th class="py-4 px-6">Status</th>
@@ -190,21 +190,27 @@ $status_configs = [
                                 <td class="py-4 px-6 whitespace-nowrap">
                                     <div class="font-bold text-slate-200"><?php echo htmlspecialchars($gp['visitor_name']); ?></div>
                                     <div class="text-slate-400 text-xs flex items-center gap-1 mt-0.5">
-                                        <i class="fa-solid fa-phone text-[9px]"></i> <?php echo htmlspecialchars($gp['visitor_phone']); ?>
-                                        <span class="text-slate-700">|</span>
                                         <i class="fa-solid fa-envelope text-[9px]"></i> <?php echo htmlspecialchars($gp['visitor_email']); ?>
                                     </div>
                                 </td>
 
-                                <!-- Organization -->
-                                <td class="py-4 px-6 font-semibold text-slate-300">
-                                    <?php echo htmlspecialchars($gp['company_org'] ?: 'N/A'); ?>
+                                <!-- Department -->
+                                <td class="py-4 px-6">
+                                    <div class="font-semibold text-slate-300"><?php echo htmlspecialchars($gp['department']); ?></div>
                                 </td>
 
-                                <!-- Host & Department -->
-                                <td class="py-4 px-6">
-                                    <div class="font-semibold text-slate-300"><?php echo htmlspecialchars($gp['host_name']); ?></div>
-                                    <div class="text-xs text-slate-400 mt-0.5"><?php echo htmlspecialchars($gp['department']); ?></div>
+                                <!-- Transaction Details -->
+                                <td class="py-4 px-6 text-xs">
+                                    <?php if ($gp['material_desc']): ?>
+                                        <div class="font-bold text-slate-200"><?php echo htmlspecialchars($gp['material_desc']); ?></div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5">
+                                            <span class="font-mono text-slate-450">S. No: <?php echo htmlspecialchars($gp['material_serial'] ?: 'N/A'); ?></span>
+                                            <span class="text-slate-700">|</span>
+                                            <span>Qty: <?php echo htmlspecialchars($gp['material_qty']); ?></span>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-slate-500 italic">No Materials</span>
+                                    <?php endif; ?>
                                 </td>
 
                                 <!-- Visit Date -->

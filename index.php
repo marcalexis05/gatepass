@@ -1,6 +1,4 @@
 <?php
-$page_title = "Welcome";
-require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/config/database.php';
 
 $error = '';
@@ -22,9 +20,13 @@ if (isset($_GET['search']) && !empty($_GET['gatepass_no'])) {
     }
 }
 
-// Generate registration URL based on configured Server IP
+// Generate registration & checkout URLs based on configured Server IP
 $server_ip = get_setting('server_ip', 'localhost');
 $register_url = "http://" . $server_ip . "/gatepass/register.php";
+$checkout_url = "http://" . $server_ip . "/gatepass/checkout.php";
+
+$page_title = "Welcome";
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="py-6 lg:py-12">
@@ -44,7 +46,7 @@ $register_url = "http://" . $server_ip . "/gatepass/register.php";
     <!-- Main Features Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start mb-16">
         <!-- Interactive Cards -->
-        <div class="lg:col-span-7 space-y-6">
+        <div class="lg:col-span-6 space-y-6">
             <!-- Card 1: Check Status / Quick Search -->
             <div class="glass-card p-6 sm:p-8 rounded-3xl glow-indigo border border-indigo-500/10 relative overflow-hidden transition-all duration-300">
                 <div class="absolute top-0 right-0 w-24 h-24 bg-indigo-500/5 rounded-bl-full pointer-events-none"></div>
@@ -103,35 +105,60 @@ $register_url = "http://" . $server_ip . "/gatepass/register.php";
             </div>
         </div>
 
-        <!-- Entrance Scan/QR Promo Section -->
-        <div class="lg:col-span-5">
-            <div class="glass-card p-8 rounded-3xl border border-slate-800/80 text-center flex flex-col items-center relative overflow-hidden">
+        <!-- Scan/QR Promo Section -->
+        <div class="lg:col-span-6 grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <!-- Card 3: Scan Entrance QR -->
+            <div class="glass-card p-6 rounded-3xl glow-indigo border border-indigo-500/10 text-center flex flex-col items-center relative overflow-hidden">
                 <div class="absolute inset-0 bg-gradient-to-b from-indigo-500/5 via-transparent to-transparent pointer-events-none"></div>
-                <div class="w-16 h-16 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-2xl mb-6">
+                <div class="w-12 h-12 rounded-2xl bg-indigo-600/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 text-xl mb-4">
                     <i class="fa-solid fa-qrcode"></i>
                 </div>
-                <h3 class="text-2xl font-black text-white mb-3 tracking-tight">Scan Entrance QR</h3>
-                <p class="text-slate-400 text-sm mb-6 max-w-sm mx-auto">
-                    Arrived at our main lobby? Point your cell phone camera at this QR code to load the registration form instantly and fill out your details!
+                <h3 class="text-lg font-bold text-white mb-2 tracking-tight">Scan Entrance QR</h3>
+                <p class="text-slate-400 text-xs mb-4 leading-relaxed">
+                    Arrived at our main lobby? Point your cell phone camera at this QR code to load the entry form.
                 </p>
 
                 <!-- Generated QR Code Display -->
-                <div class="p-4 bg-white rounded-2xl shadow-xl inline-block mb-6 relative group overflow-hidden">
-                    <div id="qrcode" class="p-1"></div>
+                <div class="p-3 bg-white rounded-2xl shadow-xl inline-block mb-4 relative group overflow-hidden">
+                    <div id="entrance-qrcode" class="p-1"></div>
                     <div class="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 cursor-pointer rounded-2xl"
                          onclick="window.print()">
                         <span class="text-xs text-white font-bold bg-indigo-600 px-3 py-1.5 rounded-lg shadow">
-                            <i class="fa-solid fa-print mr-1"></i> Print QR
+                            <i class="fa-solid fa-print mr-1"></i> Print
                         </span>
                     </div>
                 </div>
                 
-                <span class="text-xs text-indigo-400 font-semibold tracking-wider uppercase bg-indigo-500/10 px-3 py-1 rounded-full border border-indigo-500/20 break-all select-all">
+                <span class="text-[9px] text-indigo-400 font-semibold tracking-wider uppercase bg-indigo-500/10 px-2 py-0.5 rounded-full border border-indigo-500/20 break-all select-all max-w-full">
                     <?php echo htmlspecialchars($register_url); ?>
                 </span>
-                <p class="text-[10px] text-slate-500 mt-2">
-                    *Ensure your phone is connected to the host network.
+            </div>
+
+            <!-- Card 4: Scan Check-Out QR -->
+            <div class="glass-card p-6 rounded-3xl glow-rose border border-rose-500/10 text-center flex flex-col items-center relative overflow-hidden">
+                <div class="absolute inset-0 bg-gradient-to-b from-rose-500/5 via-transparent to-transparent pointer-events-none"></div>
+                <div class="w-12 h-12 rounded-2xl bg-rose-600/10 border border-rose-500/20 flex items-center justify-center text-rose-400 text-xl mb-4">
+                    <i class="fa-solid fa-building-circle-xmark"></i>
+                </div>
+                <h3 class="text-lg font-bold text-white mb-2 tracking-tight">Scan Check-Out QR</h3>
+                <p class="text-slate-400 text-xs mb-4 leading-relaxed">
+                    Leaving the premises? Point your camera at this QR code to retrieve your pass and check out.
                 </p>
+
+                <!-- Generated QR Code Display -->
+                <div class="p-3 bg-white rounded-2xl shadow-xl inline-block mb-4 relative group overflow-hidden">
+                    <div id="checkout-qrcode" class="p-1"></div>
+                    <div class="absolute inset-0 bg-slate-950/60 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300 cursor-pointer rounded-2xl"
+                         onclick="window.print()">
+                        <span class="text-xs text-white font-bold bg-rose-600 px-3 py-1.5 rounded-lg shadow">
+                            <i class="fa-solid fa-print mr-1"></i> Print
+                        </span>
+                    </div>
+                </div>
+                
+                <span class="text-[9px] text-rose-400 font-semibold tracking-wider uppercase bg-rose-500/10 px-2 py-0.5 rounded-full border border-rose-500/20 break-all select-all max-w-full">
+                    <?php echo htmlspecialchars($checkout_url); ?>
+                </span>
             </div>
         </div>
     </div>
@@ -166,15 +193,26 @@ $register_url = "http://" . $server_ip . "/gatepass/register.php";
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
-    // Generate QR code for scanning
-    const qrUrl = "<?php echo $register_url; ?>";
-    new QRCode(document.getElementById("qrcode"), {
-        text: qrUrl,
-        width: 160,
-        height: 160,
+    // Generate Entrance QR code
+    const entranceUrl = "<?php echo $register_url; ?>";
+    new QRCode(document.getElementById("entrance-qrcode"), {
+        text: entranceUrl,
+        width: 130,
+        height: 130,
         colorDark : "#0b0f19",
         colorLight : "#ffffff",
-        correctLevel : QRCode.CorrectLevel.H
+        correctLevel : QRCode.CorrectLevel.M
+    });
+
+    // Generate Check-Out QR code
+    const checkoutUrl = "<?php echo $checkout_url; ?>";
+    new QRCode(document.getElementById("checkout-qrcode"), {
+        text: checkoutUrl,
+        width: 130,
+        height: 130,
+        colorDark : "#0b0f19",
+        colorLight : "#ffffff",
+        correctLevel : QRCode.CorrectLevel.M
     });
 });
 </script>

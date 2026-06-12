@@ -1,6 +1,4 @@
 <?php
-$page_title = "Digital Gatepass";
-require_once __DIR__ . '/includes/header.php';
 require_once __DIR__ . '/config/database.php';
 
 $gatepass_no = trim($_GET['code'] ?? '');
@@ -17,6 +15,8 @@ $stmt->execute([$gatepass_no]);
 $gp = $stmt->fetch();
 
 if (!$gp) {
+    $page_title = "Digital Gatepass";
+    require_once __DIR__ . '/includes/header.php';
     echo "
     <div class='max-w-md mx-auto text-center py-12'>
         <div class='text-rose-500 text-5xl mb-4'><i class='fa-solid fa-circle-exclamation'></i></div>
@@ -42,6 +42,9 @@ $cfg = $status_configs[$gp['status']] ?? $status_configs['Pending'];
 // Dynamic URL for Verification scanned by guards (using settings IP)
 $server_ip = get_setting('server_ip', 'localhost');
 $verify_url = "http://" . $server_ip . "/gatepass/verify.php?code=" . $gp['gatepass_no'];
+
+$page_title = "Digital Gatepass";
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="max-w-xl mx-auto py-2">
@@ -59,95 +62,216 @@ $verify_url = "http://" . $server_ip . "/gatepass/verify.php?code=" . $gp['gatep
     <?php endif; ?>
 
     <!-- Gatepass Ticket Layout -->
-    <div class="glass-card rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden mb-6" id="gatepass-card">
-        <!-- Top Banner Gradient -->
-        <div class="h-2 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500"></div>
+    <div class="glass-card rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden mb-6 p-6 sm:p-8" id="gatepass-card">
+        <!-- Ticket Header (Concentrix Design) -->
+        <div class="border-2 border-slate-800 p-4 rounded-t-2xl bg-slate-900/30 text-center relative">
+            <div class="flex flex-col sm:flex-row items-center justify-between border-b border-slate-800 pb-4 mb-4 gap-4">
+                <!-- Brand logo/name -->
+                <div class="text-left flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-emerald-500 flex items-center justify-center text-white font-bold text-sm">
+                        <i class="fa-solid fa-id-card-clip"></i>
+                    </div>
+                    <span class="text-lg font-black text-white uppercase tracking-tight font-display">concentrix</span>
+                </div>
+                
+                <!-- Center Info -->
+                <div class="text-center">
+                    <h3 class="text-sm font-extrabold text-slate-300">Concentrix UP-1</h3>
+                    <p class="text-[10px] text-slate-500">Ground-4th Floor Building-D UP Technohub Quezon City</p>
+                </div>
 
-        <!-- Ticket Header -->
-        <div class="p-6 border-b border-slate-800/80 flex items-center justify-between">
-            <div class="flex items-center space-x-2">
-                <span class="w-2.5 h-2.5 rounded-full bg-indigo-500 animate-pulse"></span>
-                <span class="text-xs font-bold text-slate-400 tracking-widest uppercase">Digital Ticket</span>
+                <!-- Right serial/date -->
+                <div class="text-right text-xs space-y-1">
+                    <div><span class="text-slate-500 uppercase tracking-widest font-bold text-[9px]">S. No.</span> <span class="font-mono font-bold text-indigo-400"><?php echo htmlspecialchars($gp['gatepass_no']); ?></span></div>
+                    <div><span class="text-slate-500 uppercase tracking-widest font-bold text-[9px]">Date:</span> <span class="font-bold text-slate-300"><?php echo date('M d, Y', strtotime($gp['visit_date'])); ?></span></div>
+                </div>
             </div>
-            <!-- Status Badge -->
-            <div class="px-3 py-1 rounded-full text-xs font-bold border <?php echo $cfg['bg'] . ' ' . $cfg['border'] . ' ' . $cfg['text']; ?> flex items-center space-x-1.5">
+
+            <!-- Ticket Forms Titles -->
+            <h1 class="text-xl font-black text-white tracking-widest uppercase mb-1">GATE PASS</h1>
+            <p class="text-xs text-slate-400 font-bold tracking-wider underline mb-1">RETURNABLE / NON-RETURNABLE</p>
+            <p class="text-xs text-rose-400 font-extrabold tracking-widest uppercase">MATERIAL MOVEMENT</p>
+            
+            <!-- Absolute badge for status -->
+            <div class="absolute top-4 right-4 sm:top-auto sm:bottom-4 sm:right-4 px-3 py-1 rounded-full text-[10px] font-bold border <?php echo $cfg['bg'] . ' ' . $cfg['border'] . ' ' . $cfg['text']; ?> flex items-center space-x-1">
                 <i class="fa-solid <?php echo $cfg['icon']; ?>"></i>
                 <span><?php echo strtoupper($gp['status']); ?></span>
             </div>
         </div>
 
-        <div class="p-6 sm:p-8 space-y-8">
-            <!-- Ticket Info Panel Grid -->
-            <div class="grid grid-cols-2 gap-y-6 gap-x-4">
-                <div class="col-span-2">
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Gatepass Number</span>
-                    <span class="text-2xl font-black text-white tracking-wider select-all"><?php echo htmlspecialchars($gp['gatepass_no']); ?></span>
-                </div>
-                
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Visitor Name</span>
-                    <span class="text-sm font-semibold text-slate-200"><?php echo htmlspecialchars($gp['visitor_name']); ?></span>
-                </div>
-
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Company / Organization</span>
-                    <span class="text-sm font-semibold text-slate-200"><?php echo htmlspecialchars($gp['company_org'] ?: 'N/A'); ?></span>
-                </div>
-
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Contact Number</span>
-                    <span class="text-sm font-semibold text-slate-200"><?php echo htmlspecialchars($gp['visitor_phone']); ?></span>
-                </div>
-
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Scheduled Date</span>
-                    <span class="text-sm font-semibold text-slate-200"><?php echo date('M d, Y', strtotime($gp['visit_date'])); ?></span>
-                </div>
-
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Host Person</span>
-                    <span class="text-sm font-semibold text-slate-200"><?php echo htmlspecialchars($gp['host_name']); ?></span>
-                </div>
-
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Department</span>
-                    <span class="text-sm font-semibold text-slate-200"><?php echo htmlspecialchars($gp['department']); ?></span>
-                </div>
-
-                <div class="col-span-2">
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Purpose of Visit</span>
-                    <span class="text-sm font-semibold text-slate-200"><?php echo htmlspecialchars($gp['purpose']); ?></span>
-                </div>
-
-                <?php if ($gp['time_in'] || $gp['time_out']): ?>
-                    <div>
-                        <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Checked In</span>
-                        <span class="text-sm font-semibold text-emerald-400"><?php echo $gp['time_in'] ? date('h:i A', strtotime($gp['time_in'])) : '--:--'; ?></span>
-                    </div>
-                    <div>
-                        <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold mb-1">Checked Out</span>
-                        <span class="text-sm font-semibold text-slate-400"><?php echo $gp['time_out'] ? date('h:i A', strtotime($gp['time_out'])) : '--:--'; ?></span>
-                    </div>
-                <?php endif; ?>
-            </div>
-
-            <!-- Dynamic Verification QR Code (Center) -->
-            <div class="flex flex-col items-center justify-center border-t border-dashed border-slate-800/80 pt-8 mt-4">
-                <p class="text-xs text-slate-400 font-medium text-center mb-4 max-w-xs">
-                    Please present this QR code to the Security Guard at the gate entrance for status verification.
-                </p>
-                <div class="p-3 bg-white rounded-2xl shadow-lg inline-block">
-                    <div id="ticket-qrcode"></div>
-                </div>
-                <span class="text-[10px] text-slate-500 mt-2 select-all break-all text-center max-w-xs">
-                    Verify URL: <?php echo htmlspecialchars($verify_url); ?>
+        <!-- Particulars form layout -->
+        <div class="border-x-2 border-b-2 border-slate-800 p-4 bg-slate-900/10 text-xs space-y-3">
+            <div class="flex flex-wrap items-center">
+                <span class="text-slate-450 font-extrabold uppercase tracking-wider mr-2">Name</span>
+                <span class="flex-grow border-b border-dashed border-slate-700 pb-0.5 text-slate-200 font-bold text-sm tracking-wide px-2">
+                    <?php echo htmlspecialchars($gp['visitor_name']); ?>
                 </span>
             </div>
+            
+            <div class="flex flex-wrap items-center">
+                <span class="text-slate-450 font-extrabold uppercase tracking-wider mr-2">Program/Department</span>
+                <span class="flex-grow border-b border-dashed border-slate-700 pb-0.5 text-slate-200 font-semibold px-2">
+                    <?php echo htmlspecialchars($gp['department']); ?>
+                </span>
+            </div>
+
+            <div class="flex flex-wrap items-center">
+                <span class="text-slate-455 font-extrabold uppercase tracking-wider mr-2">EID</span>
+                <span class="flex-grow border-b border-dashed border-slate-700 pb-0.5 text-slate-200 font-semibold font-mono px-2">
+                    <?php echo htmlspecialchars($gp['eid'] ?: 'N/A'); ?>
+                </span>
+            </div>
+
+            <div class="flex flex-wrap items-center">
+                <span class="text-slate-500 font-extrabold uppercase tracking-wider mr-2">Email</span>
+                <span class="flex-grow border-b border-dashed border-slate-800 pb-0.5 text-slate-450 font-semibold px-2">
+                    <?php echo htmlspecialchars($gp['visitor_email']); ?>
+                </span>
+            </div>
+        </div>
+
+        <!-- Materials Table -->
+        <div class="border-x-2 border-b-2 border-slate-800 overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-900/60 border-b-2 border-slate-800 text-slate-400 font-extrabold uppercase tracking-wider">
+                        <th class="p-3 border-r border-slate-800 text-center w-40">S. No.</th>
+                        <th class="p-3 border-r border-slate-800">Material Description</th>
+                        <th class="p-3 border-r border-slate-800 text-center w-20">Qty.</th>
+                        <th class="p-3">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody class="text-slate-300">
+                    <tr class="border-b border-slate-800/50 bg-slate-900/10">
+                        <td class="p-3 border-r border-slate-800 font-mono text-center text-slate-350"><?php echo htmlspecialchars($gp['material_serial'] ?: 'N/A'); ?></td>
+                        <td class="p-3 border-r border-slate-800 font-semibold text-slate-200"><?php echo htmlspecialchars($gp['material_desc'] ?: 'No material items registered'); ?></td>
+                        <td class="p-3 border-r border-slate-800 text-center font-bold"><?php echo htmlspecialchars($gp['material_qty'] ?: '-'); ?></td>
+                        <td class="p-3 text-slate-400 italic"><?php echo htmlspecialchars($gp['purpose'] ?: '-'); ?></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Signatures and Security Release Block (Matching Concentrix Paper Form) -->
+        <div class="border-x-2 border-b-2 border-slate-800 bg-slate-900/20 text-[10px] font-bold uppercase tracking-wider p-6 space-y-8">
+            <!-- First Row: Signatures -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center items-start">
+                <!-- Requestor Name and Signature (Left) -->
+                <div class="flex flex-col items-center">
+                    <div class="h-16 flex items-end justify-center relative mb-1">
+                        <?php if ($gp['visitor_signature']): ?>
+                            <img src="<?php echo $gp['visitor_signature']; ?>" class="max-h-16 max-w-full object-contain signature-img" alt="Visitor Signature">
+                        <?php else: ?>
+                            <span class="text-slate-600 text-[11px] italic font-semibold">No Signature</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="w-full max-w-[280px] border-t border-slate-700 pt-1">
+                        <span class="block text-slate-200 text-[11px] font-extrabold tracking-wide mb-0.5"><?php echo htmlspecialchars($gp['visitor_name']); ?></span>
+                        <span class="text-slate-400 font-bold text-[9px]">Requestor Name and Signature</span>
+                    </div>
+                </div>
+
+                <!-- Authorized Manager Name and Signature (Right) -->
+                <div class="flex flex-col items-center">
+                    <div class="h-16 flex items-end justify-center relative mb-1">
+                        <?php if ($gp['admin_signature']): ?>
+                            <img src="<?php echo $gp['admin_signature']; ?>" class="max-h-16 max-w-full object-contain signature-img" alt="Manager Signature">
+                        <?php else: ?>
+                            <span class="text-slate-600 text-[11px] italic font-extrabold tracking-widest animate-pulse">PENDING CHECK-OUT</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="w-full max-w-[280px] border-t border-slate-700 pt-1">
+                        <span class="block text-slate-200 text-[11px] font-extrabold tracking-wide mb-0.5"><?php echo $gp['admin_signature'] ? 'System Administrator' : '______________________'; ?></span>
+                        <span class="text-slate-400 font-bold text-[9px]">Authorized Manager Name and Signature</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Second Row: Released By Security & Returnable Header -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-end pt-4">
+                <!-- Released By Security (Left) -->
+                <div class="flex flex-col items-start min-h-[60px]">
+                    <div class="h-8 flex items-center justify-start pl-8 relative mb-1">
+                        <?php if ($gp['status'] === 'Checked Out'): ?>
+                            <div class="px-2 py-0.5 rounded border border-rose-500/40 text-rose-400 font-black text-[9px] tracking-widest uppercase rotate-2">
+                                RELEASED
+                            </div>
+                        <?php elseif ($gp['status'] === 'Checked In'): ?>
+                            <div class="px-2 py-0.5 rounded border border-indigo-500/40 text-indigo-400 font-black text-[9px] tracking-widest uppercase rotate-2">
+                                INGRESS
+                            </div>
+                        <?php else: ?>
+                            <span class="text-slate-600 text-[9px] italic">Pending</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="w-full max-w-[250px] border-t border-slate-700 pt-1">
+                        <span class="text-slate-400 font-bold text-[9px]">Released By (Security)</span>
+                    </div>
+                </div>
+
+                <!-- Returnable Material Title (Right) -->
+                <div class="text-center md:text-right pb-1">
+                    <span class="text-xs font-black text-rose-400 tracking-wider underline block">
+                        RETURNABLE MATERIAL / INGRESS
+                    </span>
+                </div>
+            </div>
+
+            <!-- Third Row: Date Received & Received By Details -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800/40">
+                <div class="flex items-center">
+                    <span class="text-slate-500 mr-2 text-[9px] font-bold uppercase tracking-wider">Date Asset/Item received:</span>
+                    <span class="flex-grow border-b border-dashed border-slate-800 pb-0.5 text-slate-350 font-semibold">
+                        <?php echo $gp['time_in'] ? date('M d, Y', strtotime($gp['visit_date'])) : '____________________'; ?>
+                    </span>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-slate-500 mr-2 text-[9px] font-bold uppercase tracking-wider">Signature:</span>
+                    <span class="flex-grow border-b border-dashed border-slate-800 pb-0.5 text-slate-350 font-mono text-[9px] tracking-widest text-emerald-450 font-bold">
+                        <?php echo ($gp['time_in'] && !empty($gp['visitor_signature']) && $gp['visitor_signature'] !== 'N/A') ? '✓ VERIFIED' : '____________________'; ?>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Section -->
+        <div class="border-x-2 border-b-2 border-slate-800 p-4 rounded-b-2xl bg-slate-950/20 text-[10px] text-slate-500 space-y-4">
+            <div>
+                <h4 class="font-bold uppercase tracking-wider text-slate-400 mb-1 border-b border-slate-800 pb-1">General Instructions</h4>
+                <ul class="list-decimal pl-4 space-y-0.5">
+                    <li>This Gate Pass shall be signed in Triplicate.</li>
+                    <li>All details as required must be filled.</li>
+                    <li>All competent authorities must sign the Gate Pass as requested.</li>
+                    <li>All Gate Pass should be stamped and logged in Material Movement Register by Security.</li>
+                    <li>Material will be permitted to move out of the premises with proper Gate Pass.</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold uppercase tracking-wider text-slate-400 mb-1 border-b border-slate-800 pb-1">Responsibility of Signatories</h4>
+                <ul class="list-decimal pl-4 space-y-0.5">
+                    <li><strong>Requestor:</strong> Should ensure accuracy and completeness of the Gate Pass and the items indicated within.</li>
+                    <li><strong>Authorized Manager:</strong> (Manager of requestor) Should validate and be accountable of the items being brought in and out of the site.</li>
+                    <li><strong>Security:</strong> Inspects and ensures that the gatepass has been fully signed, filled out correctly and items for ingress/egress have been inspected.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Dynamic Verification QR Code (Center) -->
+        <div class="flex flex-col items-center justify-center pt-8 mt-4 no-print">
+            <p class="text-xs text-slate-400 font-medium text-center mb-4 max-w-xs">
+                Scan this QR code at the gate to verify entry/exit logs.
+            </p>
+            <div class="p-3 bg-white rounded-2xl shadow-lg inline-block">
+                <div id="ticket-qrcode"></div>
+            </div>
+            <span class="text-[10px] text-slate-500 mt-2 select-all break-all text-center max-w-xs">
+                Verify URL: <?php echo htmlspecialchars($verify_url); ?>
+            </span>
         </div>
     </div>
 
     <!-- Print & Navigation Actions -->
-    <div class="flex flex-col sm:flex-row gap-3 justify-center mb-10">
+    <div class="flex flex-col sm:flex-row gap-3 justify-center mb-10 no-print">
         <button onclick="window.print()"
                 class="px-6 py-3 bg-slate-800 hover:bg-slate-700 active:scale-95 transition-all text-white font-bold text-sm rounded-xl border border-slate-700/80 flex items-center justify-center space-x-2">
             <i class="fa-solid fa-print"></i>
@@ -186,32 +310,84 @@ document.addEventListener('DOMContentLoaded', () => {
 
 <style>
 /* Print Stylesheet overrides for ticket download compatibility */
+@page {
+    size: A4 portrait;
+    margin: 10mm;
+}
 @media print {
-    header, footer, nav, button, a {
+    header, footer, nav, button, a, .no-print {
         display: none !important;
     }
     body {
         background-color: white !important;
         color: black !important;
         background-image: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
     }
     #gatepass-card {
-        border: 2px solid #ccc !important;
+        border: 2px solid #000000 !important;
         background: white !important;
         box-shadow: none !important;
         color: black !important;
-        margin: 0 auto;
-        max-width: 100%;
+        margin: 0 auto !important;
+        padding: 10mm !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
         backdrop-filter: none !important;
     }
-    span.text-slate-500, span.text-slate-400 {
-        color: #555555 !important;
+    /* Compact print layouts */
+    #gatepass-card .p-6, 
+    #gatepass-card .p-8, 
+    #gatepass-card .p-4 {
+        padding: 10px !important;
     }
-    span.text-slate-200, span.text-white {
-        color: black !important;
+    #gatepass-card .space-y-8 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 14px !important;
     }
-    #ticket-qrcode {
-        border: 1px solid #000;
+    #gatepass-card .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 6px !important;
+    }
+    #gatepass-card .py-6 {
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+    }
+    /* Solid black borders for table and grid items in print */
+    .border-2 {
+        border: 2px solid #000000 !important;
+    }
+    .border-x-2 {
+        border-left: 2px solid #000000 !important;
+        border-right: 2px solid #000000 !important;
+    }
+    .border-b-2 {
+        border-bottom: 2px solid #000000 !important;
+    }
+    .border-b {
+        border-bottom: 1px solid #000000 !important;
+    }
+    .border-t {
+        border-top: 1px solid #000000 !important;
+    }
+    .border-r {
+        border-right: 1px solid #000000 !important;
+    }
+    .bg-slate-900\/30, .bg-slate-900\/10, .bg-slate-900\/60, .bg-slate-900\/20, .bg-slate-950\/20 {
+        background-color: transparent !important;
+    }
+    h1, h2, h3, h4, span, p, th, td, li, strong {
+        color: #000000 !important;
+    }
+    .text-slate-550, .text-slate-500, .text-slate-450, .text-slate-400, .text-slate-300, .text-slate-200 {
+        color: #000000 !important;
+    }
+    .text-indigo-400, .text-rose-400, .text-emerald-400 {
+        color: #000000 !important;
+    }
+    /* Invert signature drawings to print black on white */
+    img.signature-img {
+        filter: invert(1) !important;
     }
 }
 </style>

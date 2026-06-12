@@ -43,10 +43,21 @@ function get_setting($key, $default = '') {
         $stmt = $pdo->prepare("SELECT setting_value FROM settings WHERE setting_key = ?");
         $stmt->execute([$key]);
         $result = $stmt->fetch();
-        return $result ? $result['setting_value'] : $default;
+        if ($result && !empty($result['setting_value'])) {
+            return $result['setting_value'];
+        }
     } catch (PDOException $e) {
-        return $default;
+        // Fall through
     }
+    
+    // Fall back to environment variable if database value is empty
+    $env_key = strtoupper($key);
+    $env_val = getenv($env_key);
+    if ($env_val !== false && $env_val !== '') {
+        return $env_val;
+    }
+    
+    return $default;
 }
 
 // Function to update a setting value

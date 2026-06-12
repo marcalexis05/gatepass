@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `settings` (
 -- Seed default admin user (username: admin, password: password123)
 -- Hash generated via password_hash('password123', PASSWORD_DEFAULT)
 INSERT INTO `users` (`username`, `password`, `email`, `full_name`) 
-VALUES ('admin', '$2y$10$wU05ZpYfC1UeL7v96B1Wxe1hX2rU6o3iL9w9FjT5fU.mPZ5s07/K.', 'admin@example.com', 'System Administrator')
+VALUES ('admin', '$2y$10$il4NINYrZ.W14P3sGjtrtOfZ8PK4KquoccNYsOKpj43AbWN6DnVbq', 'admin@example.com', 'System Administrator')
 ON DUPLICATE KEY UPDATE `username`=`username`;
 
 -- Seed default settings

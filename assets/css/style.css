@@ -61,6 +61,10 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 0 25px -5px rgba(16, 185, 129, 0.3);
 }
 
+.glow-rose {
+  box-shadow: 0 0 25px -5px rgba(244, 63, 94, 0.3);
+}
+
 /* Custom animated backgrounds */
 @keyframes pulse-slow {
   0%, 100% {

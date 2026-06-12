@@ -16,6 +16,16 @@ if (!$lock_fp || !flock($lock_fp, LOCK_EX | LOCK_NB)) {
     exit(0);
 }
 
+// Prevent Windows from sleeping while tunnel is running
+if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+    $awake_script = __DIR__ . '/includes/keep_awake.ps1';
+    if (file_exists($awake_script)) {
+        $php_pid = getmypid();
+        pclose(popen('start /B powershell -NoProfile -ExecutionPolicy Bypass -File ' . escapeshellarg($awake_script) . ' -ParentPid ' . $php_pid, 'r'));
+        echo "💤 Sleep Prevention active: system sleep is suppressed while tunnel is running.\n";
+    }
+}
+
 // Clear console screen depending on OS
 if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
     system('cls');
@@ -34,7 +44,7 @@ $subdomain = getenv('SERVEO_SUBDOMAIN') ?: 'digital-gatepass';
 echo "🔑 Requesting static subdomain: $subdomain.serveo.net\n";
 
 // Open a command channel to serveo.net
-$cmd = 'ssh -o StrictHostKeyChecking=no -R ' . escapeshellarg($subdomain) . ':80:127.0.0.1:80 serveo.net 2>&1';
+$cmd = 'ssh -i C:\\Users\\Pia\\.ssh\\id_rsa -o StrictHostKeyChecking=no -R ' . escapeshellarg($subdomain) . ':80:127.0.0.1:80 serveo.net 2>&1';
 $descriptorspec = [
     0 => ["pipe", "r"], // stdin
     1 => ["pipe", "w"], // stdout
@@ -66,6 +76,13 @@ if (is_resource($process)) {
             // Parse Serveo URL from console output
             if (preg_match('/Forwarding HTTP traffic from https:\/\/([a-zA-Z0-9.-]+\.serveo(?:usercontent)?\.(?:net|com|org))/i', $line, $matches)) {
                 $public_domain = $matches[1];
+                
+                // If it matches the configured static subdomain, normalize it to serveousercontent.com
+                $configured_subdomain = getenv('SERVEO_SUBDOMAIN');
+                if (!empty($configured_subdomain) && strpos($public_domain, $configured_subdomain) !== false) {
+                    $public_domain = $configured_subdomain . '.serveousercontent.com';
+                }
+                
                 $tunnel_established = true;
                 
                 echo "\n-----------------------------------------------------------------\n";

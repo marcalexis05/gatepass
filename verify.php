@@ -1,8 +1,6 @@
 <?php
-$page_title = "Verify Visitor Pass";
-require_once __DIR__ . '/includes/header.php';
-require_once __DIR__ . '/config/database.php';
 require_once __DIR__ . '/includes/auth.php';
+require_once __DIR__ . '/config/database.php';
 
 $gatepass_no = trim($_GET['code'] ?? '');
 $action = trim($_GET['action'] ?? '');
@@ -20,6 +18,8 @@ $stmt->execute([$gatepass_no]);
 $gp = $stmt->fetch();
 
 if (!$gp) {
+    $page_title = "Verify Visitor Pass";
+    require_once __DIR__ . '/includes/header.php';
     echo "
     <div class='max-w-md mx-auto text-center py-12'>
         <div class='text-rose-500 text-5xl mb-4'><i class='fa-solid fa-circle-exclamation'></i></div>
@@ -31,39 +31,66 @@ if (!$gp) {
     exit;
 }
 
+$trigger_email = false;
+
 // Handle administrative actions if user is logged in
-if (is_logged_in() && !empty($action)) {
-    try {
-        $allowed_actions = ['approve', 'reject', 'check_in', 'check_out'];
-        if (in_array($action, $allowed_actions)) {
-            if ($action === 'approve') {
-                $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Approved' WHERE gatepass_no = ?");
-                $stmt->execute([$gatepass_no]);
-                $message = "Gatepass successfully APPROVED.";
-            } elseif ($action === 'reject') {
-                $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Rejected' WHERE gatepass_no = ?");
-                $stmt->execute([$gatepass_no]);
-                $message = "Gatepass successfully REJECTED.";
-                $message_type = 'warning';
-            } elseif ($action === 'check_in') {
-                $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Checked In', time_in = CURRENT_TIME() WHERE gatepass_no = ?");
-                $stmt->execute([$gatepass_no]);
-                $message = "Visitor has been CHECKED IN at " . date('h:i A');
-            } elseif ($action === 'check_out') {
-                $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Checked Out', time_out = CURRENT_TIME() WHERE gatepass_no = ?");
-                $stmt->execute([$gatepass_no]);
-                $message = "Visitor has been CHECKED OUT at " . date('h:i A');
-                $message_type = 'neutral';
+if (is_logged_in()) {
+    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+        $post_action = trim($_POST['action'] ?? '');
+        if ($post_action === 'check_out') {
+            $admin_signature = $_POST['admin_signature'] ?? '';
+            if (empty($admin_signature)) {
+                $message = "Authorized Manager's signature is required to complete check-out.";
+                $message_type = 'error';
+            } elseif ($gp['status'] === 'Checked In') {
+                try {
+                    $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Checked Out', time_out = CURRENT_TIME(), admin_signature = ? WHERE gatepass_no = ?");
+                    $stmt->execute([$admin_signature, $gatepass_no]);
+                    $message = "Visitor has been CHECKED OUT at " . date('h:i A');
+                    $message_type = 'success';
+                    $trigger_email = true;
+                    
+                    // Reload gatepass record
+                    $stmt = $pdo->prepare("SELECT * FROM gatepasses WHERE gatepass_no = ?");
+                    $stmt->execute([$gatepass_no]);
+                    $gp = $stmt->fetch();
+                } catch (Exception $e) {
+                    $message = "Failed to update checkout log: " . $e->getMessage();
+                    $message_type = 'error';
+                }
+            } else {
+                $message = "This gatepass is not in a Checked In state and cannot be checked out.";
+                $message_type = 'error';
             }
-            
-            // Reload the gatepass record
-            $stmt = $pdo->prepare("SELECT * FROM gatepasses WHERE gatepass_no = ?");
-            $stmt->execute([$gatepass_no]);
-            $gp = $stmt->fetch();
         }
-    } catch (Exception $e) {
-        $message = "Failed to update gatepass: " . $e->getMessage();
-        $message_type = 'error';
+    } elseif (!empty($action)) {
+        try {
+            $allowed_actions = ['approve', 'reject', 'check_in'];
+            if (in_array($action, $allowed_actions)) {
+                if ($action === 'approve') {
+                    $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Approved' WHERE gatepass_no = ?");
+                    $stmt->execute([$gatepass_no]);
+                    $message = "Gatepass successfully APPROVED.";
+                } elseif ($action === 'reject') {
+                    $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Rejected' WHERE gatepass_no = ?");
+                    $stmt->execute([$gatepass_no]);
+                    $message = "Gatepass successfully REJECTED.";
+                    $message_type = 'warning';
+                } elseif ($action === 'check_in') {
+                    $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Checked In', time_in = CURRENT_TIME() WHERE gatepass_no = ?");
+                    $stmt->execute([$gatepass_no]);
+                    $message = "Visitor has been CHECKED IN at " . date('h:i A');
+                }
+                
+                // Reload the gatepass record
+                $stmt = $pdo->prepare("SELECT * FROM gatepasses WHERE gatepass_no = ?");
+                $stmt->execute([$gatepass_no]);
+                $gp = $stmt->fetch();
+            }
+        } catch (Exception $e) {
+            $message = "Failed to update gatepass: " . $e->getMessage();
+            $message_type = 'error';
+        }
     }
 }
 
@@ -76,6 +103,9 @@ $status_configs = [
     'Checked Out' => ['bg' => 'bg-slate-700/20', 'border' => 'border-slate-700/30', 'text' => 'text-slate-400', 'icon' => 'fa-right-from-bracket']
 ];
 $cfg = $status_configs[$gp['status']] ?? $status_configs['Pending'];
+
+$page_title = "Verify Visitor Pass";
+require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="max-w-xl mx-auto py-4">
@@ -105,138 +135,451 @@ $cfg = $status_configs[$gp['status']] ?? $status_configs['Pending'];
     <?php endif; ?>
 
     <!-- Gatepass Scanner Panel -->
-    <div class="glass-card rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden mb-6">
-        <div class="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-emerald-500"></div>
+    <div class="glass-card rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden mb-6 p-6 sm:p-8" id="gatepass-card">
+        <!-- Ticket Header (Concentrix Design) -->
+        <div class="border-2 border-slate-800 p-4 rounded-t-2xl bg-slate-900/30 text-center relative">
+            <div class="flex flex-col sm:flex-row items-center justify-between border-b border-slate-800 pb-4 mb-4 gap-4">
+                <!-- Brand logo/name -->
+                <div class="text-left flex items-center space-x-2">
+                    <div class="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-emerald-500 flex items-center justify-center text-white font-bold text-sm">
+                        <i class="fa-solid fa-id-card-clip"></i>
+                    </div>
+                    <span class="text-lg font-black text-white uppercase tracking-tight font-display">concentrix</span>
+                </div>
+                
+                <!-- Center Info -->
+                <div class="text-center">
+                    <h3 class="text-sm font-extrabold text-slate-300">Concentrix UP-1</h3>
+                    <p class="text-[10px] text-slate-500">Ground-4th Floor Building-D UP Technohub Quezon City</p>
+                </div>
 
-        <div class="p-6 border-b border-slate-800/80 flex items-center justify-between bg-slate-900/40">
-            <div class="flex items-center space-x-2">
-                <i class="fa-solid fa-shield-halved text-indigo-400"></i>
-                <span class="text-xs font-bold text-slate-300 tracking-widest uppercase">Verification Terminal</span>
+                <!-- Right serial/date -->
+                <div class="text-right text-xs space-y-1">
+                    <div><span class="text-slate-500 uppercase tracking-widest font-bold text-[9px]">S. No.</span> <span class="font-mono font-bold text-indigo-400"><?php echo htmlspecialchars($gp['gatepass_no']); ?></span></div>
+                    <div><span class="text-slate-500 uppercase tracking-widest font-bold text-[9px]">Date:</span> <span class="font-bold text-slate-300"><?php echo date('M d, Y', strtotime($gp['visit_date'])); ?></span></div>
+                </div>
             </div>
-            <!-- Status Badge -->
-            <div class="px-3 py-1 rounded-full text-xs font-bold border <?php echo $cfg['bg'] . ' ' . $cfg['border'] . ' ' . $cfg['text']; ?> flex items-center space-x-1.5">
+
+            <!-- Ticket Forms Titles -->
+            <h1 class="text-xl font-black text-white tracking-widest uppercase mb-1">GATE PASS</h1>
+            <p class="text-xs text-slate-400 font-bold tracking-wider underline mb-1">RETURNABLE / NON-RETURNABLE</p>
+            <p class="text-xs text-rose-400 font-extrabold tracking-widest uppercase">MATERIAL MOVEMENT</p>
+            
+            <!-- Absolute badge for status -->
+            <div class="absolute top-4 right-4 sm:top-auto sm:bottom-4 sm:right-4 px-3 py-1 rounded-full text-[10px] font-bold border <?php echo $cfg['bg'] . ' ' . $cfg['border'] . ' ' . $cfg['text']; ?> flex items-center space-x-1">
                 <i class="fa-solid <?php echo $cfg['icon']; ?>"></i>
                 <span><?php echo strtoupper($gp['status']); ?></span>
             </div>
         </div>
 
-        <div class="p-6 sm:p-8 space-y-6">
-            <div class="text-center pb-4 border-b border-slate-800/60">
-                <span class="block text-[10px] text-indigo-400 font-extrabold uppercase tracking-widest mb-1">Gatepass Code</span>
-                <h2 class="text-2xl font-black text-white tracking-wider select-all"><?php echo htmlspecialchars($gp['gatepass_no']); ?></h2>
+        <!-- Particulars form layout -->
+        <div class="border-x-2 border-b-2 border-slate-800 p-4 bg-slate-900/10 text-xs space-y-3">
+            <div class="flex flex-wrap items-center">
+                <span class="text-slate-450 font-extrabold uppercase tracking-wider mr-2">Name</span>
+                <span class="flex-grow border-b border-dashed border-slate-700 pb-0.5 text-slate-200 font-bold text-sm tracking-wide px-2">
+                    <?php echo htmlspecialchars($gp['visitor_name']); ?>
+                </span>
+            </div>
+            <div class="flex flex-wrap items-center">
+                <span class="text-slate-450 font-extrabold uppercase tracking-wider mr-2">Program/Department</span>
+                <span class="flex-grow border-b border-dashed border-slate-700 pb-0.5 text-slate-200 font-semibold px-2">
+                    <?php echo htmlspecialchars($gp['department']); ?>
+                </span>
             </div>
 
-            <!-- Detail Grid -->
-            <div class="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Visitor Name</span>
-                    <span class="font-semibold text-slate-200"><?php echo htmlspecialchars($gp['visitor_name']); ?></span>
-                </div>
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Company/Org</span>
-                    <span class="font-semibold text-slate-200"><?php echo htmlspecialchars($gp['company_org'] ?: 'N/A'); ?></span>
-                </div>
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Contact Number</span>
-                    <span class="font-semibold text-slate-200"><?php echo htmlspecialchars($gp['visitor_phone']); ?></span>
-                </div>
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Email Address</span>
-                    <span class="font-semibold text-slate-200 break-all"><?php echo htmlspecialchars($gp['visitor_email']); ?></span>
-                </div>
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Scheduled Date</span>
-                    <span class="font-semibold text-slate-200"><?php echo date('F d, Y', strtotime($gp['visit_date'])); ?></span>
-                </div>
-                <div>
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Host Person</span>
-                    <span class="font-semibold text-slate-200"><?php echo htmlspecialchars($gp['host_name']); ?> (<?php echo htmlspecialchars($gp['department']); ?>)</span>
-                </div>
-                <div class="col-span-2">
-                    <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Purpose of Visit</span>
-                    <span class="font-semibold text-slate-200"><?php echo htmlspecialchars($gp['purpose']); ?></span>
-                </div>
-                <?php if ($gp['time_in']): ?>
-                    <div>
-                        <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Time In</span>
-                        <span class="font-semibold text-emerald-400"><?php echo date('h:i A', strtotime($gp['time_in'])); ?></span>
-                    </div>
-                <?php endif; ?>
-                <?php if ($gp['time_out']): ?>
-                    <div>
-                        <span class="block text-[10px] text-slate-500 uppercase tracking-widest font-bold">Time Out</span>
-                        <span class="font-semibold text-slate-400"><?php echo date('h:i A', strtotime($gp['time_out'])); ?></span>
-                    </div>
-                <?php endif; ?>
+            <div class="flex flex-wrap items-center">
+                <span class="text-slate-455 font-extrabold uppercase tracking-wider mr-2">EID</span>
+                <span class="flex-grow border-b border-dashed border-slate-700 pb-0.5 text-slate-200 font-semibold font-mono px-2">
+                    <?php echo htmlspecialchars($gp['eid'] ?: 'N/A'); ?>
+                </span>
             </div>
 
-            <!-- Administration Control Panel -->
-            <div class="pt-6 border-t border-slate-800/80">
-                <?php if (is_logged_in()): ?>
-                    <span class="block text-[10px] text-indigo-400 font-extrabold uppercase tracking-widest mb-4 text-center">Admin Controls</span>
-                    
-                    <div class="grid grid-cols-2 gap-3">
-                        <!-- Pending / Approve / Reject controls -->
-                        <?php if ($gp['status'] === 'Pending'): ?>
-                            <a href="verify.php?code=<?php echo urlencode($gatepass_no); ?>&action=approve"
-                               class="py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all">
-                                <i class="fa-solid fa-circle-check"></i>
-                                <span>Approve Request</span>
-                            </a>
-                            <a href="verify.php?code=<?php echo urlencode($gatepass_no); ?>&action=reject"
-                               class="py-2.5 bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all">
-                                <i class="fa-solid fa-circle-xmark"></i>
-                                <span>Reject Request</span>
-                            </a>
-                        <?php endif; ?>
-
-                        <!-- Check In Control -->
-                        <?php if ($gp['status'] === 'Approved'): ?>
-                            <a href="verify.php?code=<?php echo urlencode($gatepass_no); ?>&action=check_in"
-                               class="col-span-2 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all">
-                                <i class="fa-solid fa-right-to-bracket"></i>
-                                <span>Check In Visitor</span>
-                            </a>
-                        <?php endif; ?>
-
-                        <!-- Check Out Control -->
-                        <?php if ($gp['status'] === 'Checked In'): ?>
-                            <a href="verify.php?code=<?php echo urlencode($gatepass_no); ?>&action=check_out"
-                               class="col-span-2 py-2.5 bg-slate-700 hover:bg-slate-600 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all">
-                                <i class="fa-solid fa-right-from-bracket"></i>
-                                <span>Check Out Visitor</span>
-                            </a>
-                        <?php endif; ?>
-
-                        <!-- Terminal status closed states -->
-                        <?php if ($gp['status'] === 'Rejected'): ?>
-                            <div class="col-span-2 p-3 text-center text-xs font-semibold bg-rose-950/20 border border-rose-900/30 text-rose-400 rounded-xl">
-                                <i class="fa-solid fa-circle-xmark mr-1.5"></i> This request has been rejected. Entry denied.
-                            </div>
-                        <?php endif; ?>
-
-                        <?php if ($gp['status'] === 'Checked Out'): ?>
-                            <div class="col-span-2 p-3 text-center text-xs font-semibold bg-slate-800/40 border border-slate-700/50 text-slate-400 rounded-xl">
-                                <i class="fa-solid fa-circle-info mr-1.5"></i> This pass is archived (Checked Out).
-                            </div>
-                        <?php endif; ?>
-                    </div>
-                <?php else: ?>
-                    <!-- Security warning & login prompt -->
-                    <div class="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-900/30 text-center">
-                        <i class="fa-solid fa-lock text-indigo-400 text-lg mb-2"></i>
-                        <p class="text-xs text-slate-300 font-medium mb-3">
-                            You are viewing this pass details. Login as Administrator to update entry status (Approve, Check In/Out).
-                        </p>
-                        <a href="admin/login.php?redirect=<?php echo urlencode('../verify.php?code=' . $gatepass_no); ?>"
-                           class="inline-block px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-all active:scale-[0.97]">
-                            <i class="fa-solid fa-user-lock mr-1.5"></i> Admin Login
-                        </a>
-                    </div>
-                <?php endif; ?>
+            <div class="flex flex-wrap items-center">
+                <span class="text-slate-500 font-extrabold uppercase tracking-wider mr-2">Email</span>
+                <span class="flex-grow border-b border-dashed border-slate-800 pb-0.5 text-slate-450 font-semibold px-2">
+                    <?php echo htmlspecialchars($gp['visitor_email']); ?>
+                </span>
             </div>
         </div>
+
+        <!-- Materials Table -->
+        <div class="border-x-2 border-b-2 border-slate-800 overflow-x-auto">
+            <table class="w-full text-left text-xs border-collapse">
+                <thead>
+                    <tr class="bg-slate-900/60 border-b-2 border-slate-800 text-slate-400 font-extrabold uppercase tracking-wider">
+                        <th class="p-3 border-r border-slate-800 text-center w-40">S. No.</th>
+                        <th class="p-3 border-r border-slate-800">Material Description</th>
+                        <th class="p-3 border-r border-slate-800 text-center w-20">Qty.</th>
+                        <th class="p-3">Remarks</th>
+                    </tr>
+                </thead>
+                <tbody class="text-slate-300">
+                    <tr class="border-b border-slate-800/50 bg-slate-900/10">
+                        <td class="p-3 border-r border-slate-800 font-mono text-center text-slate-350"><?php echo htmlspecialchars($gp['material_serial'] ?: 'N/A'); ?></td>
+                        <td class="p-3 border-r border-slate-800 font-semibold text-slate-200"><?php echo htmlspecialchars($gp['material_desc'] ?: 'No material items registered'); ?></td>
+                        <td class="p-3 border-r border-slate-800 text-center font-bold"><?php echo htmlspecialchars($gp['material_qty'] ?: '-'); ?></td>
+                        <td class="p-3 text-slate-400 italic"><?php echo htmlspecialchars($gp['purpose'] ?: '-'); ?></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Signatures and Security Release Block (Matching Concentrix Paper Form) -->
+        <div class="border-x-2 border-b-2 border-slate-800 bg-slate-900/20 text-[10px] font-bold uppercase tracking-wider p-6 space-y-8">
+            <!-- First Row: Signatures -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 text-center items-start">
+                <!-- Requestor Name and Signature (Left) -->
+                <div class="flex flex-col items-center">
+                    <div class="h-16 flex items-end justify-center relative mb-1">
+                        <?php if ($gp['visitor_signature']): ?>
+                            <img src="<?php echo $gp['visitor_signature']; ?>" class="max-h-16 max-w-full object-contain signature-img" alt="Visitor Signature">
+                        <?php else: ?>
+                            <span class="text-slate-600 text-[11px] italic font-semibold">No Signature</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="w-full max-w-[280px] border-t border-slate-700 pt-1">
+                        <span class="block text-slate-200 text-[11px] font-extrabold tracking-wide mb-0.5"><?php echo htmlspecialchars($gp['visitor_name']); ?></span>
+                        <span class="text-slate-400 font-bold text-[9px]">Requestor Name and Signature</span>
+                    </div>
+                </div>
+
+                <!-- Authorized Manager Name and Signature (Right) -->
+                <div class="flex flex-col items-center">
+                    <div class="h-16 flex items-end justify-center relative mb-1">
+                        <?php if ($gp['admin_signature']): ?>
+                            <img src="<?php echo $gp['admin_signature']; ?>" class="max-h-16 max-w-full object-contain signature-img" alt="Manager Signature">
+                        <?php else: ?>
+                            <span class="text-slate-600 text-[11px] italic font-extrabold tracking-widest animate-pulse">PENDING CHECK-OUT</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="w-full max-w-[280px] border-t border-slate-700 pt-1">
+                        <span class="block text-slate-200 text-[11px] font-extrabold tracking-wide mb-0.5"><?php echo $gp['admin_signature'] ? 'System Administrator' : '______________________'; ?></span>
+                        <span class="text-slate-400 font-bold text-[9px]">Authorized Manager Name and Signature</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Second Row: Released By Security & Returnable Header -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-end pt-4">
+                <!-- Released By Security (Left) -->
+                <div class="flex flex-col items-start min-h-[60px]">
+                    <div class="h-8 flex items-center justify-start pl-8 relative mb-1">
+                        <?php if ($gp['status'] === 'Checked Out'): ?>
+                            <div class="px-2 py-0.5 rounded border border-rose-500/40 text-rose-400 font-black text-[9px] tracking-widest uppercase rotate-2">
+                                RELEASED
+                            </div>
+                        <?php elseif ($gp['status'] === 'Checked In'): ?>
+                            <div class="px-2 py-0.5 rounded border border-indigo-500/40 text-indigo-400 font-black text-[9px] tracking-widest uppercase rotate-2">
+                                INGRESS
+                            </div>
+                        <?php else: ?>
+                            <span class="text-slate-600 text-[9px] italic">Pending</span>
+                        <?php endif; ?>
+                    </div>
+                    <div class="w-full max-w-[250px] border-t border-slate-700 pt-1">
+                        <span class="text-slate-400 font-bold text-[9px]">Released By (Security)</span>
+                    </div>
+                </div>
+
+                <!-- Returnable Material Title (Right) -->
+                <div class="text-center md:text-right pb-1">
+                    <span class="text-xs font-black text-rose-450 tracking-wider underline block">
+                        RETURNABLE MATERIAL / INGRESS
+                    </span>
+                </div>
+            </div>
+
+            <!-- Third Row: Date Received & Received By Details -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 pt-4 border-t border-slate-800/40">
+                <div class="flex items-center">
+                    <span class="text-slate-500 mr-2 text-[9px] font-bold uppercase tracking-wider">Date Asset/Item received:</span>
+                    <span class="flex-grow border-b border-dashed border-slate-800 pb-0.5 text-slate-350 font-semibold">
+                        <?php echo $gp['time_in'] ? date('M d, Y', strtotime($gp['visit_date'])) : '____________________'; ?>
+                    </span>
+                </div>
+                <div class="flex items-center">
+                    <span class="text-slate-500 mr-2 text-[9px] font-bold uppercase tracking-wider">Signature:</span>
+                    <span class="flex-grow border-b border-dashed border-slate-800 pb-0.5 text-slate-350 font-mono text-[9px] tracking-widest text-emerald-450 font-bold">
+                        <?php echo ($gp['time_in'] && !empty($gp['visitor_signature']) && $gp['visitor_signature'] !== 'N/A') ? '✓ VERIFIED' : '____________________'; ?>
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Instructions Section -->
+        <div class="border-x-2 border-b-2 border-slate-800 p-4 rounded-b-2xl bg-slate-950/20 text-[10px] text-slate-500 space-y-4">
+            <div>
+                <h4 class="font-bold uppercase tracking-wider text-slate-400 mb-1 border-b border-slate-800 pb-1">General Instructions</h4>
+                <ul class="list-decimal pl-4 space-y-0.5">
+                    <li>This Gate Pass shall be signed in Triplicate.</li>
+                    <li>All details as required must be filled.</li>
+                    <li>All competent authorities must sign the Gate Pass as requested.</li>
+                    <li>All Gate Pass should be stamped and logged in Material Movement Register by Security.</li>
+                    <li>Material will be permitted to move out of the premises with proper Gate Pass.</li>
+                </ul>
+            </div>
+            <div>
+                <h4 class="font-bold uppercase tracking-wider text-slate-400 mb-1 border-b border-slate-800 pb-1">Responsibility of Signatories</h4>
+                <ul class="list-decimal pl-4 space-y-0.5">
+                    <li><strong>Requestor:</strong> Should ensure accuracy and completeness of the Gate Pass and the items indicated within.</li>
+                    <li><strong>Authorized Manager:</strong> (Manager of requestor) Should validate and be accountable of the items being brought in and out of the site.</li>
+                    <li><strong>Security:</strong> Inspects and ensures that the gatepass has been fully signed, filled out correctly and items for ingress/egress have been inspected.</li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Administration Control Panel -->
+        <div class="pt-6 border-t border-slate-800/80">
+            <?php if (is_logged_in()): ?>
+                <span class="block text-[10px] text-indigo-400 font-extrabold uppercase tracking-widest mb-4 text-center">Admin Controls</span>
+                
+                <div class="grid grid-cols-2 gap-3">
+                    <!-- Pending / Approve / Reject controls -->
+                    <?php if ($gp['status'] === 'Pending'): ?>
+                        <a href="verify.php?code=<?php echo urlencode($gatepass_no); ?>&action=approve"
+                           class="py-2.5 bg-emerald-600 hover:bg-emerald-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all">
+                            <i class="fa-solid fa-circle-check"></i>
+                            <span>Approve Request</span>
+                        </a>
+                        <a href="verify.php?code=<?php echo urlencode($gatepass_no); ?>&action=reject"
+                           class="py-2.5 bg-rose-600 hover:bg-rose-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all">
+                            <i class="fa-solid fa-circle-xmark"></i>
+                            <span>Reject Request</span>
+                        </a>
+                    <?php endif; ?>
+
+                    <!-- Check In Control -->
+                    <?php if ($gp['status'] === 'Approved'): ?>
+                        <a href="verify.php?code=<?php echo urlencode($gatepass_no); ?>&action=check_in"
+                           class="col-span-2 py-2.5 bg-indigo-600 hover:bg-indigo-500 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all">
+                            <i class="fa-solid fa-right-to-bracket"></i>
+                            <span>Check In Visitor</span>
+                        </a>
+                    <?php endif; ?>
+
+                    <!-- Check Out Form with Signature Pad -->
+                    <?php if ($gp['status'] === 'Checked In'): ?>
+                        <form action="verify.php?code=<?php echo urlencode($gatepass_no); ?>" method="POST" id="admin-checkout-form" class="col-span-2 space-y-4 text-left">
+                            <input type="hidden" name="action" value="check_out">
+                            
+                            <div class="space-y-2">
+                                <label class="block text-xs font-bold text-slate-350 uppercase tracking-wide font-display">Authorized Manager Name & Signature <span class="text-rose-500">*</span></label>
+                                <div class="relative bg-dark-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
+                                    <canvas id="admin-checkout-signature-pad" class="w-full h-32 cursor-crosshair bg-slate-950 block"></canvas>
+                                    <button type="button" id="clear-admin-checkout-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all">
+                                        <i class="fa-solid fa-eraser mr-1"></i> Clear
+                                    </button>
+                                </div>
+                                <input type="hidden" id="admin_signature" name="admin_signature">
+                            </div>
+
+                            <button type="submit"
+                                    class="w-full py-2.5 bg-gradient-to-r from-rose-600 to-rose-500 hover:from-rose-500 hover:to-rose-400 active:scale-[0.98] text-white font-bold text-xs rounded-xl flex items-center justify-center space-x-1.5 transition-all shadow-lg shadow-rose-600/15">
+                                <i class="fa-solid fa-right-from-bracket"></i>
+                                <span>Verify & Check Out Visitor</span>
+                            </button>
+                        </form>
+                    <?php endif; ?>
+
+                    <!-- Terminal status closed states -->
+                    <?php if ($gp['status'] === 'Rejected'): ?>
+                        <div class="col-span-2 p-3 text-center text-xs font-semibold bg-rose-950/20 border border-rose-900/30 text-rose-400 rounded-xl">
+                            <i class="fa-solid fa-circle-xmark mr-1.5"></i> This request has been rejected. Entry denied.
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($gp['status'] === 'Checked Out'): ?>
+                        <div class="col-span-2 p-3 text-center text-xs font-semibold bg-slate-800/40 border border-slate-700/50 text-slate-400 rounded-xl">
+                            <i class="fa-solid fa-circle-info mr-1.5"></i> This pass is archived (Checked Out).
+                        </div>
+                    <?php endif; ?>
+                </div>
+            <?php else: ?>
+                <!-- Security warning & login prompt -->
+                <div class="p-4 rounded-2xl bg-indigo-950/20 border border-indigo-900/30 text-center">
+                    <i class="fa-solid fa-lock text-indigo-400 text-lg mb-2"></i>
+                    <p class="text-xs text-slate-300 font-medium mb-3">
+                        You are viewing this pass details. Login as Administrator to update entry status (Approve, Check In/Out).
+                    </p>
+                    <a href="admin/login.php?redirect=<?php echo urlencode('../verify.php?code=' . $gatepass_no); ?>"
+                       class="inline-block px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold rounded-lg transition-all active:scale-[0.97]">
+                        <i class="fa-solid fa-user-lock mr-1.5"></i> Admin Login
+                    </a>
+                </div>
+            <?php endif; ?>
+        </div>
     </div>
+
+<style>
+@page {
+    size: A4 portrait;
+    margin: 10mm;
+}
+@media print {
+    header, footer, nav, button, a, .no-print {
+        display: none !important;
+    }
+    body {
+        background-color: white !important;
+        color: black !important;
+        background-image: none !important;
+        margin: 0 !important;
+        padding: 0 !important;
+    }
+    #gatepass-card {
+        border: 2px solid #000000 !important;
+        background: white !important;
+        box-shadow: none !important;
+        color: black !important;
+        margin: 0 auto !important;
+        padding: 10mm !important;
+        width: 100% !important;
+        max-width: 100% !important;
+        box-sizing: border-box !important;
+        backdrop-filter: none !important;
+    }
+    /* Compact print layouts */
+    #gatepass-card .p-6, 
+    #gatepass-card .p-8, 
+    #gatepass-card .p-4 {
+        padding: 10px !important;
+    }
+    #gatepass-card .space-y-8 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 14px !important;
+    }
+    #gatepass-card .space-y-4 > :not([hidden]) ~ :not([hidden]) {
+        margin-top: 6px !important;
+    }
+    #gatepass-card .py-6 {
+        padding-top: 8px !important;
+        padding-bottom: 8px !important;
+    }
+    .border-2 {
+        border: 2px solid #000000 !important;
+    }
+    .border-x-2 {
+        border-left: 2px solid #000000 !important;
+        border-right: 2px solid #000000 !important;
+    }
+    .border-b-2 {
+        border-bottom: 2px solid #000000 !important;
+    }
+    .border-b, .border-t {
+        border-bottom: 1px solid #000000 !important;
+        border-top: 1px solid #000000 !important;
+    }
+    .border-r {
+        border-right: 1px solid #000000 !important;
+    }
+    .bg-slate-900\/30, .bg-slate-900\/10, .bg-slate-900\/60, .bg-slate-900\/20, .bg-slate-950\/20 {
+        background-color: transparent !important;
+    }
+    h1, h2, h3, h4, span, p, th, td, li, strong {
+        color: #000000 !important;
+    }
+    .text-slate-550, .text-slate-500, .text-slate-450, .text-slate-400, .text-slate-300, .text-slate-200 {
+        color: #000000 !important;
+    }
+    .text-indigo-400, .text-rose-400, .text-emerald-400 {
+        color: #000000 !important;
+    }
+    img.signature-img {
+        filter: invert(1) !important;
+    }
+}
+</style>
+
+<?php if (is_logged_in() && $gp['status'] === 'Checked In'): ?>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Admin signature pad setup
+    const canvas = document.getElementById('admin-checkout-signature-pad');
+    if (canvas) {
+        const ctx = canvas.getContext('2d');
+        const clearBtn = document.getElementById('clear-admin-checkout-sig');
+        const sigInput = document.getElementById('admin_signature');
+        const form = document.getElementById('admin-checkout-form');
+        let drawing = false;
+
+        function resizeCanvas() {
+            canvas.width = canvas.offsetWidth;
+            canvas.height = canvas.offsetHeight;
+            ctx.lineWidth = 3;
+            ctx.lineCap = 'round';
+            ctx.strokeStyle = '#ffffff';
+        }
+        resizeCanvas();
+        window.addEventListener('resize', resizeCanvas);
+
+        function getPos(e) {
+            const rect = canvas.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+            return {
+                x: clientX - rect.left,
+                y: clientY - rect.top
+            };
+        }
+
+        function startDrawing(e) {
+            drawing = true;
+            const pos = getPos(e);
+            ctx.beginPath();
+            ctx.moveTo(pos.x, pos.y);
+            e.preventDefault();
+        }
+
+        function draw(e) {
+            if (!drawing) return;
+            const pos = getPos(e);
+            ctx.lineTo(pos.x, pos.y);
+            ctx.stroke();
+            e.preventDefault();
+        }
+
+        function stopDrawing() {
+            if (drawing) {
+                drawing = false;
+                sigInput.value = canvas.toDataURL();
+            }
+        }
+
+        canvas.addEventListener('mousedown', startDrawing);
+        canvas.addEventListener('mousemove', draw);
+        canvas.addEventListener('mouseup', stopDrawing);
+        canvas.addEventListener('mouseleave', stopDrawing);
+
+        canvas.addEventListener('touchstart', startDrawing, { passive: false });
+        canvas.addEventListener('touchmove', draw, { passive: false });
+        canvas.addEventListener('touchend', stopDrawing);
+
+        clearBtn.addEventListener('click', () => {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            sigInput.value = '';
+        });
+
+        form.addEventListener('submit', (e) => {
+            if (!sigInput.value) {
+                e.preventDefault();
+                alert("Manager/Authorized Signature is required to complete check-out.");
+            }
+        });
+    }
+});
+</script>
+<?php endif; ?>
+
+<?php if ($trigger_email): ?>
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    // Asynchronously dispatch checkout confirmation emails in background
+    fetch("send_emails_ajax.php?code=<?php echo urlencode($gatepass_no); ?>")
+        .then(response => response.text())
+        .then(data => console.log("Asynchronous checkout email dispatch response:", data))
+        .catch(error => console.error("Asynchronous checkout email dispatch failed:", error));
+});
+</script>
+<?php endif; ?>
 </div>
 
 <?php

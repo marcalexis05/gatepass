@@ -63,13 +63,23 @@ function send_gatepass_email($gatepass, $recipient_email, $recipient_name, $role
         // Content
         $mail->isHTML(true);
         
-        // Subject and dynamic body styling based on role
+        // Subject and dynamic body styling based on role and status
         if ($role === 'admin') {
-            $mail->Subject = "New Gatepass Request: " . $gatepass['gatepass_no'] . " - " . $gatepass['visitor_name'];
-            $body = get_admin_email_template($gatepass, $system_name);
+            if ($gatepass['status'] === 'Checked Out') {
+                $mail->Subject = "Visitor Checked Out: " . $gatepass['gatepass_no'] . " - " . $gatepass['visitor_name'];
+                $body = get_admin_checkout_email_template($gatepass, $system_name);
+            } else {
+                $mail->Subject = "New Gatepass Request: " . $gatepass['gatepass_no'] . " - " . $gatepass['visitor_name'];
+                $body = get_admin_email_template($gatepass, $system_name);
+            }
         } else {
-            $mail->Subject = "Your Digital Gatepass: " . $gatepass['gatepass_no'];
-            $body = get_visitor_email_template($gatepass, $system_name);
+            if ($gatepass['status'] === 'Checked Out') {
+                $mail->Subject = "Checked Out Confirmed: " . $gatepass['gatepass_no'];
+                $body = get_visitor_checkout_email_template($gatepass, $system_name);
+            } else {
+                $mail->Subject = "Your Digital Gatepass: " . $gatepass['gatepass_no'];
+                $body = get_visitor_email_template($gatepass, $system_name);
+            }
         }
 
         $mail->Body    = $body;
@@ -111,20 +121,16 @@ function get_admin_email_template($gp, $sys_name) {
                             <td style='padding: 8px 0; color: #111827; font-weight: bold; font-size: 14px;'>{$gp['visitor_name']}</td>
                         </tr>
                         <tr>
-                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Email / Phone:</td>
-                            <td style='padding: 8px 0; color: #111827; font-size: 14px;'>{$gp['visitor_email']} / {$gp['visitor_phone']}</td>
-                        </tr>
-                        <tr>
-                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Company/Org:</td>
-                            <td style='padding: 8px 0; color: #111827; font-size: 14px;'>" . ($gp['company_org'] ?: 'N/A') . "</td>
+                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Email:</td>
+                            <td style='padding: 8px 0; color: #111827; font-size: 14px;'>{$gp['visitor_email']}</td>
                         </tr>
                         <tr>
                             <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Purpose of Visit:</td>
                             <td style='padding: 8px 0; color: #111827; font-size: 14px;'>{$gp['purpose']}</td>
                         </tr>
                         <tr>
-                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Host / Dept:</td>
-                            <td style='padding: 8px 0; color: #111827; font-size: 14px;'>{$gp['host_name']} ({$gp['department']})</td>
+                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Program/Department:</td>
+                            <td style='padding: 8px 0; color: #111827; font-size: 14px;'>{$gp['department']}</td>
                         </tr>
                         <tr>
                             <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Scheduled Date:</td>
@@ -171,11 +177,7 @@ function get_visitor_email_template($gp, $sys_name) {
                             <td style='padding: 8px 0; color: #111827; font-weight: bold; font-size: 14px;'>{$gp['gatepass_no']}</td>
                         </tr>
                         <tr>
-                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Host Person:</td>
-                            <td style='padding: 8px 0; color: #111827; font-size: 14px;'>{$gp['host_name']}</td>
-                        </tr>
-                        <tr>
-                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Department:</td>
+                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Program/Department:</td>
                             <td style='padding: 8px 0; color: #111827; font-size: 14px;'>{$gp['department']}</td>
                         </tr>
                         <tr>
@@ -199,6 +201,106 @@ function get_visitor_email_template($gp, $sys_name) {
             </div>
             <div style='background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 12px;'>
                 This is an automated message. Please contact administrative office if you have any questions.
+            </div>
+        </div>
+    </div>";
+}
+
+// Admin checkout email template with sleek, premium design
+function get_admin_checkout_email_template($gp, $sys_name) {
+    $server_ip = get_setting('server_ip', 'localhost');
+    $dashboard_url = "http://" . $server_ip . "/gatepass/admin/dashboard.php";
+    $checkout_time = $gp['time_out'] ? date('h:i A', strtotime($gp['time_out'])) : date('h:i A');
+    
+    return "
+    <div style='font-family: Arial, sans-serif; background-color: #f3f4f6; padding: 30px; margin: 0;'>
+        <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-top: 6px solid #4f46e5;'>
+            <div style='padding: 25px; text-align: center; background-color: #4f46e5; color: #ffffff;'>
+                <h1 style='margin: 0; font-size: 24px; font-weight: bold;'>$sys_name Notification</h1>
+                <p style='margin: 5px 0 0 0; opacity: 0.9;'>Visitor Checked Out Successfully</p>
+            </div>
+            <div style='padding: 30px;'>
+                <p style='font-size: 16px; color: #374151; margin-top: 0;'>Hello Admin,</p>
+                <p style='font-size: 15px; color: #4b5563;'>The following visitor has checked out of the premises:</p>
+                
+                <div style='background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 25px 0; border: 1px solid #e5e7eb;'>
+                    <table style='width: 100%; border-collapse: collapse;'>
+                        <tr>
+                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px; width: 40%;'>Gatepass No:</td>
+                            <td style='padding: 8px 0; color: #111827; font-weight: bold; font-size: 14px;'>{$gp['gatepass_no']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Visitor Name:</td>
+                            <td style='padding: 8px 0; color: #111827; font-weight: bold; font-size: 14px;'>{$gp['visitor_name']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Check-In Time:</td>
+                            <td style='padding: 8px 0; color: #111827; font-size: 14px;'>" . ($gp['time_in'] ? date('h:i A', strtotime($gp['time_in'])) : 'N/A') . "</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Check-Out Time:</td>
+                            <td style='padding: 8px 0; color: #ef4444; font-weight: bold; font-size: 14px;'>$checkout_time</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Program/Department:</td>
+                            <td style='padding: 8px 0; color: #111827; font-size: 14px;'>{$gp['department']}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <p style='font-size: 14px; color: #9ca3af; text-align: center; margin-top: 30px;'>
+                    You can view the full history log in the <a href='$dashboard_url' style='color: #4f46e5; text-decoration: none;'>Admin Dashboard</a>.
+                </p>
+            </div>
+            <div style='background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 12px;'>
+                This is an automated message from $sys_name. Please do not reply directly to this email.
+            </div>
+        </div>
+    </div>";
+}
+
+// Visitor checkout email template with sleek, premium design
+function get_visitor_checkout_email_template($gp, $sys_name) {
+    $checkout_time = $gp['time_out'] ? date('h:i A', strtotime($gp['time_out'])) : date('h:i A');
+    
+    return "
+    <div style='font-family: Arial, sans-serif; background-color: #f3f4f6; padding: 30px; margin: 0;'>
+        <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-top: 6px solid #ef4444;'>
+            <div style='padding: 25px; text-align: center; background-color: #ef4444; color: #ffffff;'>
+                <h1 style='margin: 0; font-size: 24px; font-weight: bold;'>$sys_name</h1>
+                <p style='margin: 5px 0 0 0; opacity: 0.9;'>Check-Out Confirmed</p>
+            </div>
+            <div style='padding: 30px;'>
+                <p style='font-size: 16px; color: #374151; margin-top: 0;'>Hello {$gp['visitor_name']},</p>
+                <p style='font-size: 15px; color: #4b5563;'>This email confirms that you have successfully checked out of the premises. Thank you for your visit!</p>
+                
+                <div style='background-color: #f9fafb; border-radius: 8px; padding: 20px; margin: 25px 0; border: 1px solid #e5e7eb;'>
+                    <table style='width: 100%; border-collapse: collapse;'>
+                        <tr>
+                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px; width: 40%;'>Gatepass No:</td>
+                            <td style='padding: 8px 0; color: #111827; font-weight: bold; font-size: 14px;'>{$gp['gatepass_no']}</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Check-In Time:</td>
+                            <td style='padding: 8px 0; color: #111827; font-size: 14px;'>" . ($gp['time_in'] ? date('h:i A', strtotime($gp['time_in'])) : 'N/A') . "</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Check-Out Time:</td>
+                            <td style='padding: 8px 0; color: #ef4444; font-weight: bold; font-size: 14px;'>$checkout_time</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 8px 0; color: #6b7280; font-size: 14px;'>Program/Department:</td>
+                            <td style='padding: 8px 0; color: #111827; font-size: 14px;'>{$gp['department']}</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <p style='font-size: 14px; color: #4b5563;'>
+                    We hope you had a pleasant visit. Have a safe journey home!
+                </p>
+            </div>
+            <div style='background-color: #f9fafb; padding: 20px; text-align: center; border-top: 1px solid #e5e7eb; color: #9ca3af; font-size: 12px;'>
+                This is an automated message. Please do not reply directly to this email.
             </div>
         </div>
     </div>";

@@ -75,6 +75,9 @@ $system_name = get_setting('system_name', 'GatePass Pro');
                         <a href="qr-generator.php" class="px-3 py-2 rounded-lg text-sm font-medium <?php echo basename($_SERVER['PHP_SELF']) == 'qr-generator.php' ? 'text-indigo-400 bg-slate-800/60' : 'text-slate-300 hover:text-white hover:bg-slate-800/40'; ?> transition-all">
                             <i class="fa-solid fa-qrcode mr-1.5"></i> Entrance QR
                         </a>
+                        <a href="checkout-qr.php" class="px-3 py-2 rounded-lg text-sm font-medium <?php echo basename($_SERVER['PHP_SELF']) == 'checkout-qr.php' ? 'text-indigo-400 bg-slate-800/60' : 'text-slate-300 hover:text-white hover:bg-slate-800/40'; ?> transition-all">
+                            <i class="fa-solid fa-qrcode mr-1.5"></i> Exit QR
+                        </a>
                         <a href="settings.php" class="px-3 py-2 rounded-lg text-sm font-medium <?php echo basename($_SERVER['PHP_SELF']) == 'settings.php' ? 'text-indigo-400 bg-slate-800/60' : 'text-slate-300 hover:text-white hover:bg-slate-800/40'; ?> transition-all">
                             <i class="fa-solid fa-sliders mr-1.5"></i> Settings
                         </a>

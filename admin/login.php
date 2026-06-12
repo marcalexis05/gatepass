@@ -1,8 +1,6 @@
 <?php
-$page_title = "Admin Login";
-require_once __DIR__ . '/../includes/header.php';
-require_once __DIR__ . '/../config/database.php';
 require_once __DIR__ . '/../includes/auth.php';
+require_once __DIR__ . '/../config/database.php';
 
 $error = '';
 $redirect = trim($_GET['redirect'] ?? '');
@@ -45,6 +43,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         }
     }
 }
+
+$page_title = "Admin Login";
+require_once __DIR__ . '/../includes/header.php';
 ?>
 
 <div class="max-w-md mx-auto py-8">

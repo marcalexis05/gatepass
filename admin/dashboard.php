@@ -194,7 +194,8 @@ $status_configs = [
                     <tr class="border-b border-slate-800/80 bg-slate-900/10 text-slate-400 text-xs uppercase tracking-wider font-bold">
                         <th class="py-4 px-6">Gatepass No</th>
                         <th class="py-4 px-6">Visitor Details</th>
-                        <th class="py-4 px-6">Host / Purpose</th>
+                        <th class="py-4 px-6">Program/Department & Purpose</th>
+                        <th class="py-4 px-6">Transaction Details</th>
                         <th class="py-4 px-6">Date & Entry Logs</th>
                         <th class="py-4 px-6">Status</th>
                         <th class="py-4 px-6 text-center">Actions</th>
@@ -225,22 +226,30 @@ $status_configs = [
                                 <td class="py-4 px-6 whitespace-nowrap">
                                     <div class="font-bold text-slate-200"><?php echo htmlspecialchars($gp['visitor_name']); ?></div>
                                     <div class="text-slate-400 text-xs flex items-center gap-1 mt-0.5">
-                                        <i class="fa-solid fa-phone text-[9px]"></i> <?php echo htmlspecialchars($gp['visitor_phone']); ?>
-                                        <span class="text-slate-700">|</span>
                                         <i class="fa-solid fa-envelope text-[9px]"></i> <?php echo htmlspecialchars($gp['visitor_email']); ?>
                                     </div>
-                                    <?php if ($gp['company_org']): ?>
-                                        <span class="inline-block mt-1 px-2 py-0.5 bg-slate-800 text-[10px] text-slate-400 rounded-md border border-slate-700/50"><?php echo htmlspecialchars($gp['company_org']); ?></span>
-                                    <?php endif; ?>
                                 </td>
 
-                                <!-- Host & Purpose -->
+                                <!-- Department & Purpose -->
                                 <td class="py-4 px-6">
-                                    <div class="font-semibold text-slate-300"><?php echo htmlspecialchars($gp['host_name']); ?></div>
-                                    <div class="text-xs text-indigo-400/90 mt-0.5"><?php echo htmlspecialchars($gp['department']); ?></div>
+                                    <div class="font-semibold text-slate-300"><?php echo htmlspecialchars($gp['department']); ?></div>
                                     <div class="text-slate-400 text-xs mt-1 italic max-w-xs truncate" title="<?php echo htmlspecialchars($gp['purpose']); ?>">
                                         "<?php echo htmlspecialchars($gp['purpose']); ?>"
                                     </div>
+                                </td>
+
+                                <!-- Transaction Details -->
+                                <td class="py-4 px-6 text-xs">
+                                    <?php if ($gp['material_desc']): ?>
+                                        <div class="font-bold text-slate-200"><?php echo htmlspecialchars($gp['material_desc']); ?></div>
+                                        <div class="text-[10px] text-slate-400 mt-0.5">
+                                            <span class="font-mono text-slate-450">S. No: <?php echo htmlspecialchars($gp['material_serial'] ?: 'N/A'); ?></span>
+                                            <span class="text-slate-700">|</span>
+                                            <span>Qty: <?php echo htmlspecialchars($gp['material_qty']); ?></span>
+                                        </div>
+                                    <?php else: ?>
+                                        <span class="text-slate-500 italic">No Materials</span>
+                                    <?php endif; ?>
                                 </td>
 
                                 <!-- Visit Date & Logs -->
@@ -288,7 +297,7 @@ $status_configs = [
                                             </a>
                                         <?php elseif ($gp['status'] === 'Checked In'): ?>
                                             <!-- Check-out Button -->
-                                            <a href="../verify.php?code=<?php echo urlencode($gp['gatepass_no']); ?>&action=check_out" title="Authorize Check Out"
+                                            <a href="../verify.php?code=<?php echo urlencode($gp['gatepass_no']); ?>" title="Authorize Check Out"
                                                class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 hover:border-slate-500 text-white transition-all text-xs font-bold flex items-center gap-1">
                                                 <i class="fa-solid fa-right-from-bracket text-[10px]"></i> Check Out
                                             </a>
