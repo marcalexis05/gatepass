@@ -77,8 +77,6 @@ if (($_POST['action'] ?? '') === 'delete_all_archived') {
     }
 }
 
-require_once __DIR__ . '/../includes/header.php';
-
 // Filter Variables
 $search = trim($_GET['search'] ?? '');
 $status_filter = trim($_GET['status'] ?? '');
@@ -89,17 +87,37 @@ $where_clauses = ["1=1"];
 $params = [];
 
 if (!empty($search)) {
-    $where_clauses[] = "(visitor_name LIKE :search OR gatepass_no LIKE :search OR host_name LIKE :search OR company_org LIKE :search)";
-    $params['search'] = '%' . $search . '%';
+    $words = array_filter(explode(' ', $search), function($w) { return trim($w) !== ''; });
+    $sub_clauses = [];
+    $word_idx = 0;
+    foreach ($words as $word) {
+        $cols = ['visitor_name', 'gatepass_no', 'visitor_email', 'visitor_phone', 'eid', 'company_org', 'purpose', 'host_name', 'department', 'material_desc', 'material_brand', 'material_serial'];
+        $clauses = [];
+        $i = 0;
+        foreach ($cols as $col) {
+            $clauses[] = "$col LIKE :word_${word_idx}_$i";
+            $params["word_${word_idx}_$i"] = '%' . trim($word) . '%';
+            $i++;
+        }
+        
+        // Check sub-materials table with unique placeholders for each column check to bypass native statement limitations
+        $clauses[] = "EXISTS (SELECT 1 FROM gatepass_materials gm WHERE gm.gatepass_no = gatepasses.gatepass_no AND (gm.material_desc LIKE :word_m_desc_${word_idx} OR gm.material_brand LIKE :word_m_brand_${word_idx} OR gm.material_serial LIKE :word_m_serial_${word_idx} OR gm.purpose LIKE :word_m_purpose_${word_idx}))";
+        $params["word_m_desc_${word_idx}"] = '%' . trim($word) . '%';
+        $params["word_m_brand_${word_idx}"] = '%' . trim($word) . '%';
+        $params["word_m_serial_${word_idx}"] = '%' . trim($word) . '%';
+        $params["word_m_purpose_${word_idx}"] = '%' . trim($word) . '%';
+
+        $sub_clauses[] = '(' . implode(' OR ', $clauses) . ')';
+        $word_idx++;
+    }
+    if (!empty($sub_clauses)) {
+        $where_clauses[] = '(' . implode(' AND ', $sub_clauses) . ')';
+    }
 }
 
 if (!empty($status_filter)) {
-    if ($status_filter === 'Resolved') {
-        $where_clauses[] = "(status = 'Checked Out' OR status = 'Rejected')";
-    } else {
-        $where_clauses[] = "status = :status";
-        $params['status'] = $status_filter;
-    }
+    $where_clauses[] = "status = :status";
+    $params['status'] = $status_filter;
 }
 
 if (!empty($dept_filter)) {
@@ -113,6 +131,125 @@ if (!empty($visit_date)) {
 }
 
 $where_sql = implode(' AND ', $where_clauses);
+
+// CSV / Excel Export Handler
+if (($_GET['export'] ?? '') === 'csv') {
+    try {
+        $query_sql = "SELECT * FROM gatepasses WHERE $where_sql ORDER BY visit_date DESC, created_at DESC";
+        $stmt = $pdo->prepare($query_sql);
+        $stmt->execute($params);
+        $records = $stmt->fetchAll();
+
+        // Fetch related materials for these gatepasses
+        $all_materials = [];
+        if (!empty($records)) {
+            $gatepass_nos = array_column($records, 'gatepass_no');
+            $in_placeholders = implode(',', array_fill(0, count($gatepass_nos), '?'));
+            $m_stmt = $pdo->prepare("SELECT * FROM gatepass_materials WHERE gatepass_no IN ($in_placeholders) ORDER BY id ASC");
+            $m_stmt->execute($gatepass_nos);
+            while ($row = $m_stmt->fetch()) {
+                $all_materials[$row['gatepass_no']][] = $row;
+            }
+        }
+
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="gatepass_export_' . date('Ymd_His') . '.csv"');
+        
+        $output = fopen('php://output', 'w');
+        
+        // Output BOM to fix Excel UTF-8 encoding issues
+        fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
+        
+        // Headers
+        fputcsv($output, [
+            'Gatepass No',
+            'Visitor Name',
+            'Visitor Email',
+            'Visitor Phone',
+            'Employee ID',
+            'Company/Org',
+            'Host Name',
+            'Program/Department',
+            'Visit Date',
+            'Check-In Time',
+            'Check-Out Time',
+            'Status',
+            'Purpose of Visit',
+            'Asset Description',
+            'Asset Brand',
+            'Asset Serial / S.No.',
+            'Asset Quantity',
+            'Created At'
+        ]);
+
+        foreach ($records as $gp) {
+            $gp_mats = $all_materials[$gp['gatepass_no']] ?? [];
+            
+            // Fallback to legacy single fields
+            if (empty($gp_mats) && !empty($gp['material_desc'])) {
+                $gp_mats = [[
+                    'purpose' => $gp['purpose'],
+                    'material_desc' => $gp['material_desc'],
+                    'material_brand' => $gp['material_brand'],
+                    'material_serial' => $gp['material_serial'],
+                    'material_qty' => $gp['material_qty']
+                ]];
+            }
+            
+            if (!empty($gp_mats)) {
+                foreach ($gp_mats as $m) {
+                    fputcsv($output, [
+                        $gp['gatepass_no'],
+                        $gp['visitor_name'],
+                        $gp['visitor_email'],
+                        $gp['visitor_phone'],
+                        $gp['eid'],
+                        $gp['company_org'],
+                        $gp['host_name'],
+                        $gp['department'],
+                        $gp['visit_date'],
+                        $gp['time_in'] ? date('h:i A', strtotime($gp['time_in'])) : 'N/A',
+                        $gp['time_out'] ? date('h:i A', strtotime($gp['time_out'])) : 'N/A',
+                        $gp['status'],
+                        $m['purpose'] ?: $gp['purpose'],
+                        $m['material_desc'] ?: 'N/A',
+                        $m['material_brand'] ?: 'N/A',
+                        $m['material_serial'] ?: 'N/A',
+                        $m['material_qty'] ?: 0,
+                        $gp['created_at']
+                    ]);
+                }
+            } else {
+                fputcsv($output, [
+                    $gp['gatepass_no'],
+                    $gp['visitor_name'],
+                    $gp['visitor_email'],
+                    $gp['visitor_phone'],
+                    $gp['eid'],
+                    $gp['company_org'],
+                    $gp['host_name'],
+                    $gp['department'],
+                    $gp['visit_date'],
+                    $gp['time_in'] ? date('h:i A', strtotime($gp['time_in'])) : 'N/A',
+                    $gp['time_out'] ? date('h:i A', strtotime($gp['time_out'])) : 'N/A',
+                    $gp['status'],
+                    $gp['purpose'],
+                    'N/A',
+                    'N/A',
+                    'N/A',
+                    0,
+                    $gp['created_at']
+                ]);
+            }
+        }
+        fclose($output);
+        exit;
+    } catch (PDOException $e) {
+        die("Export Error: " . $e->getMessage());
+    }
+}
+
+require_once __DIR__ . '/../includes/header.php';
 
 // Pagination Settings
 $limit = 5;
@@ -132,6 +269,18 @@ try {
     $stmt = $pdo->prepare($query_sql);
     $stmt->execute($params);
     $history_records = $stmt->fetchAll();
+
+    // Fetch related materials
+    $all_materials = [];
+    if (!empty($history_records)) {
+        $gatepass_nos = array_column($history_records, 'gatepass_no');
+        $in_placeholders = implode(',', array_fill(0, count($gatepass_nos), '?'));
+        $m_stmt = $pdo->prepare("SELECT * FROM gatepass_materials WHERE gatepass_no IN ($in_placeholders) ORDER BY id ASC");
+        $m_stmt->execute($gatepass_nos);
+        while ($row = $m_stmt->fetch()) {
+            $all_materials[$row['gatepass_no']][] = $row;
+        }
+    }
 } catch (PDOException $e) {
     $history_records = [];
     $total_records = 0;
@@ -157,7 +306,7 @@ $status_configs = [
 ];
 ?>
 
-<div class="space-y-6 py-4">
+<div class="space-y-6 pt-0 pb-4">
     <!-- Breadcrumb & Page Info -->
     <div class="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
@@ -171,9 +320,10 @@ $status_configs = [
                 <i class="fa-solid fa-trash-can"></i> Delete All Archived
             </button>
             <?php endif; ?>
-            <button onclick="window.print()" class="px-4 py-2.5 rounded-xl text-sm font-semibold bg-slate-800 border border-slate-700 text-slate-300 hover:text-white hover:border-slate-500 transition-all flex items-center gap-2">
-                <i class="fa-solid fa-print"></i> Print Audit Log
-            </button>
+            <a href="?<?php echo http_build_query(array_merge($_GET, ['export' => 'csv'])); ?>" 
+               class="px-4 py-2.5 rounded-xl text-sm font-semibold bg-brand-teal hover:bg-[#1fd4be] text-dark-900 shadow-lg shadow-brand-teal/10 hover:shadow-brand-teal/20 transition-all flex items-center gap-2">
+                <i class="fa-solid fa-file-excel"></i> Export Excel / CSV
+            </a>
         </div>
     </div>
 
@@ -197,7 +347,7 @@ $status_configs = [
                     <option value="">All Statuses</option>
                     <option value="Checked In" <?php echo $status_filter === 'Checked In' ? 'selected' : ''; ?>>Check In</option>
                     <option value="Checked Out" <?php echo $status_filter === 'Checked Out' ? 'selected' : ''; ?>>Check Out</option>
-                    <option value="Resolved" <?php echo $status_filter === 'Resolved' ? 'selected' : ''; ?>>Resolved</option>
+                    <option value="Rejected" <?php echo $status_filter === 'Rejected' ? 'selected' : ''; ?>>Rejected</option>
                     <option value="Archived" <?php echo $status_filter === 'Archived' ? 'selected' : ''; ?>>Archived</option>
                 </select>
             </div>
@@ -284,18 +434,40 @@ $status_configs = [
                                 </td>
 
                                 <!-- Transaction Details -->
-                                <td class="py-4 px-6 text-xs">
-                                    <?php if ($gp['material_desc']): ?>
-                                        <div class="font-bold text-slate-200"><?php echo htmlspecialchars($gp['material_desc']); ?></div>
-                                        <div class="text-[10px] text-slate-400 mt-0.5">
-                                            <span class="font-mono text-slate-450">S. No: <?php echo htmlspecialchars($gp['material_serial'] ?: 'N/A'); ?></span>
-                                            <span class="text-slate-700">|</span>
-                                            <span>Qty: <?php echo htmlspecialchars($gp['material_qty']); ?></span>
-                                        </div>
-                                    <?php else: ?>
-                                        <span class="text-slate-500 italic">No Materials</span>
-                                    <?php endif; ?>
-                                </td>
+                                 <td class="py-4 px-6 text-xs">
+                                     <?php 
+                                     $gp_mats = $all_materials[$gp['gatepass_no']] ?? [];
+                                     if (empty($gp_mats) && !empty($gp['material_desc'])) {
+                                         $gp_mats = [[
+                                             'material_desc' => $gp['material_desc'],
+                                             'material_brand' => $gp['material_brand'],
+                                             'material_serial' => $gp['material_serial'],
+                                             'material_qty' => $gp['material_qty']
+                                         ]];
+                                     }
+                                     ?>
+                                     <?php if (!empty($gp_mats)): ?>
+                                         <div class="space-y-3">
+                                             <?php foreach ($gp_mats as $idx => $m): ?>
+                                                 <div class="<?php echo $idx > 0 ? 'border-t border-slate-800/60 pt-2 mt-2' : ''; ?>">
+                                                     <div class="font-bold text-slate-200"><?php echo htmlspecialchars($m['material_desc'] ?: 'N/A'); ?></div>
+                                                     <div class="text-[10px] text-slate-400 mt-0.5 space-y-0.5">
+                                                         <?php if (!empty($m['material_brand'])): ?>
+                                                             <div><span class="text-slate-500 font-medium">Brand:</span> <span class="font-semibold text-slate-300"><?php echo htmlspecialchars($m['material_brand']); ?></span></div>
+                                                         <?php endif; ?>
+                                                         <div class="flex items-center gap-1">
+                                                             <span class="font-mono text-slate-450">S. No: <?php echo htmlspecialchars($m['material_serial'] ?: 'N/A'); ?></span>
+                                                             <span class="text-slate-700">|</span>
+                                                             <span>Qty: <?php echo htmlspecialchars($m['material_qty']); ?></span>
+                                                         </div>
+                                                     </div>
+                                                 </div>
+                                             <?php endforeach; ?>
+                                         </div>
+                                     <?php else: ?>
+                                         <span class="text-slate-500 italic">No Materials</span>
+                                     <?php endif; ?>
+                                 </td>
 
                                 <!-- Visit Date -->
                                 <td class="py-4 px-6 text-xs font-semibold text-slate-300 whitespace-nowrap">

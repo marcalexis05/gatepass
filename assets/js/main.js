@@ -87,6 +87,7 @@ function initCustomSelects() {
             const optionDiv = document.createElement('div');
             optionDiv.className = 'custom-select-option';
             optionDiv.textContent = opt.textContent;
+            optionDiv.setAttribute('data-value', opt.value);
             
             if (opt.selected) {
                 optionDiv.classList.add('selected');
@@ -136,6 +137,21 @@ function initCustomSelects() {
                 trigger.classList.add('open');
                 wrapper.classList.add('open-wrapper');
                 arrow.style.transform = 'rotate(180deg)';
+            }
+        });
+        
+        // Sync custom UI when native select changes programmatically
+        select.addEventListener('change', () => {
+            const currentOpt = select.options[select.selectedIndex];
+            if (currentOpt) {
+                triggerText.textContent = currentOpt.textContent;
+                dropdown.querySelectorAll('.custom-select-option').forEach((o, idx) => {
+                    if (idx === select.selectedIndex) {
+                        o.classList.add('selected');
+                    } else {
+                        o.classList.remove('selected');
+                    }
+                });
             }
         });
         

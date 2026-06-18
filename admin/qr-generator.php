@@ -13,11 +13,7 @@ $register_url = "http://" . $server_ip . "/gatepass/register.php";
 ?>
 
 <div class="max-w-xl mx-auto py-4 text-center">
-    <!-- Breadcrumb (Hide during print) -->
-    <a href="dashboard.php" class="text-sm font-semibold text-slate-400 hover:text-white transition-colors flex items-center justify-center space-x-1.5 mb-8 group no-print">
-        <i class="fa-solid fa-chevron-left group-hover:-translate-x-1 transition-transform"></i>
-        <span>Back to Admin Dashboard</span>
-    </a>
+
 
     <!-- Print Poster Design -->
     <div class="glass-card p-10 rounded-3xl border border-slate-800 shadow-2xl relative overflow-hidden mb-6 flex flex-col items-center" id="qr-poster">

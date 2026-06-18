@@ -1,0 +1,103 @@
+Created At: 2026-06-18T09:49:41Z
+Completed At: 2026-06-18T09:49:41Z
+File Path: `file:///c:/xampp/htdocs/gatepass/checkout.php`
+Total Lines: 770
+Total Bytes: 47159
+Showing lines 1 to 770
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: <?php
+2: require_once __DIR__ . '/config/database.php';
+3: require_once __DIR__ . '/includes/auth.php';
+4: 
+5: $gatepass_no = trim($_GET['code'] ?? '');
+6: $error = '';
+7: $success_message = '';
+8: $gp = null;
+9: $trigger_email = false;
+10: 
+11: // Handle manual search form submit
+12: if (isset($_GET['search']) && !empty($_GET['gatepass_no'])) {
+13:     $gatepass_no = trim($_GET['gatepass_no']);
+14:     header("Location: checkout.php?code=" . urlencode($gatepass_no));
+15:     exit;
+16: }
+17: 
+18: // Load gatepass details if code is provided
+19: if (!empty($gatepass_no)) {
+20:     $stmt = $pdo->prepare("SELECT * FROM gatepasses WHERE gatepass_no = ?");
+21:     $stmt->execute([$gatepass_no]);
+22:     $gp = $stmt->fetch();
+23:     
+24:     $gp_materials = [];
+25:     if ($gp) {
+26:         $materials_stmt = $pdo->prepare("SELECT * FROM gatepass_materials WHERE gatepass_no = ? ORDER BY id ASC");
+27:         $materials_stmt->execute([$gp['gatepass_no']]);
+28:         $gp_materials = $materials_stmt->fetchAll();
+29:         
+30:         // Legacy fallback
+31:         if (empty($gp_materials) && !empty($gp['material_desc'])) {
+32:             $gp_materials = [[
+33:                 'purpose' => $gp['purpose'],
+34:                 'material_desc' => $gp['material_desc'],
+35:                 'material_brand' => $gp['material_brand'],
+36:                 'material_serial' => $gp['material_serial'],
+37:                 'material_qty' => $gp['material_qty']
+38:             ]];
+39:         }
+40:     }
+41:     
+42:     if (!$gp) {
+43:         $error = "Gatepass nu
+<truncated 45282 bytes>
+esizeCanvas);
+671: 
+672:         function getPos(e) {
+673:             const rect = canvas.getBoundingClientRect();
+674:             const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+675:             const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+676:             return {
+677:                 x: clientX - rect.left,
+678:                 y: clientY - rect.top
+679:             };
+680:         }
+681: 
+682:         function startDrawing(e) {
+683:             drawing = true;
+684:             const pos = getPos(e);
+685:             ctx.beginPath();
+686:             ctx.moveTo(pos.x, pos.y);
+687:             e.preventDefault();
+688:         }
+689: 
+690:         function draw(e) {
+691:             if (!drawing) return;
+692:             const pos = getPos(e);
+693:             ctx.lineTo(pos.x, pos.y);
+694:             ctx.stroke();
+695:             e.preventDefault();
+696:         }
+697: 
+698:         function stopDrawing() {
+699:             if (drawing) {
+700:                 drawing = false;
+701:                 sigInput.value = canvas.toDataURL();
+702:             }
+703:         }
+704: 
+705:         canvas.addEventListener('mousedown', startDrawing);
+706:         canvas.addEventListener('mousemove', draw);
+707:         canvas.addEventListener('mouseup', stopDrawing);
+708:         canvas.addEventListener('mouseleave', stopDrawing);
+709: 
+710:         canvas.addEventListener('touchstart', startDrawing, { passive: false });
+711:         canvas.addEventListener('touchmove', draw, { passive: false });
+712:         canvas.addEventListener('touchend', stopDrawing);
+713: 
+714:         const updateBtn = () => {
+715:             const btn = document.getElementById('checkout-btn');
+716:             if (btn) {
+717:                 if (sigInput.value) {
+718:                     btn.removeAttribute('dis
+<truncated 2192 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need.

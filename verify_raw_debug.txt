@@ -1,0 +1,100 @@
+Created At: 2026-06-18T07:39:46Z
+Completed At: 2026-06-18T07:39:46Z
+File Path: `file:///c:/xampp/htdocs/gatepass/verify.php`
+Total Lines: 1046
+Total Bytes: 61066
+Showing lines 1 to 800
+The following code has been modified to include a line number before every line, in the format: <line_number>: <original_line>. Please note that any changes targeting the original code should remove the line number, colon, and leading space.
+1: <?php
+2: require_once __DIR__ . '/includes/auth.php';
+3: require_once __DIR__ . '/config/database.php';
+4: 
+5: $gatepass_no = trim($_GET['code'] ?? '');
+6: $action = trim($_GET['action'] ?? '');
+7: $message = '';
+8: $message_type = 'success';
+9: 
+10: if (empty($gatepass_no)) {
+11:     header("Location: index.php");
+12:     exit;
+13: }
+14: 
+15: // Fetch gatepass details
+16: $stmt = $pdo->prepare("SELECT * FROM gatepasses WHERE gatepass_no = ?");
+17: $stmt->execute([$gatepass_no]);
+18: $gp = $stmt->fetch();
+19: 
+20: if (!$gp) {
+21:     $page_title = "Verify Visitor Pass";
+22:     require_once __DIR__ . '/includes/header.php';
+23:     echo "
+24:     <div class='max-w-md mx-auto text-center py-12'>
+25:         <div class='text-rose-500 text-5xl mb-4'><i class='fa-solid fa-circle-exclamation'></i></div>
+26:         <h2 class='text-2xl font-bold text-white mb-2'>Invalid Pass Code</h2>
+27:         <p class='text-slate-400 mb-6'>The gatepass code provided does not exist or has been deleted.</p>
+28:         <a href='index.php' class='px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-sm font-semibold transition-all'>Return Home</a>
+29:     </div>";
+30:     require_once __DIR__ . '/includes/footer.php';
+31:     exit;
+32: }
+33: 
+34: $trigger_email = false;
+35: 
+36: // Handle administrative actions if user is logged in or accessing via QR scanner
+37: if (true) {
+38:     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+39:         $post_action = trim($_POST['action'] ?? '');
+40:         if ($post_action === 'check_out') {
+41:             $security_signature 
+<truncated 45282 bytes>
+ant;
+633:         padding: 0 !important;
+634:     }
+635:     /* 3. Show the content div inside main */
+636:     body > main > div {
+637:         all: unset !important;
+638:         display: block !important;
+639:         margin: 0 !important;
+640:         padding: 15mm 10mm !important; /* Move margin here to keep content centered */
+641:     }
+642:     /* 3. Show only the card */
+643:     #gatepass-card {
+644:         display: block !important;
+645:         position: relative !important;
+646:         width: 100% !important;
+647:         max-width: 100% !important;
+648:         height: auto !important;
+649:         min-height: unset !important;
+650:         max-height: unset !important;
+651:         margin: 0 !important;
+652:         padding: 4px !important;
+653:         box-sizing: border-box !important;
+654:         background: #ffffff !important;
+655:         color: #000000 !important;
+656:         border: none !important;
+657:         box-shadow: none !important;
+658:         border-radius: 0 !important;
+659:         backdrop-filter: none !important;
+660:         page-break-inside: avoid !important;
+661:         overflow: visible !important;
+662:     }
+663:     /* 4. Hide everything NOT the card inside the content div */
+664:     body > main > div > *:not(#gatepass-card),
+665:     header, footer, nav, .no-print {
+666:         display: none !important;
+667:     }
+668:     /* 5. Inner card wrapper */
+669:     #gatepass-card > div {
+670:         border: 1px solid #000 !important;
+671:         padding: 15px !important;
+672:         box-sizing: border-box !important;
+673:         background: #ffffff !important;
+674:         height: auto !important;
+675:         border-radius: 0 !important;
+676:     }
+677:     /* 6. All elements inside card */
+678:     #gatepass-card, #gatepass-card div, #gatepass-card table,
+679: 
+<truncated 6908 bytes>
+
+NOTE: The output was truncated because it was too long. Use a more targeted query or a smaller range to get the information you need.

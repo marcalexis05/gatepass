@@ -115,4 +115,44 @@ try {
         // Silent fallthrough
     }
 }
+
+// Auto-migrate: Ensure material_brand column exists
+try {
+    $pdo->query("SELECT material_brand FROM gatepasses LIMIT 1");
+} catch (Exception $e) {
+    try {
+        $pdo->exec("ALTER TABLE gatepasses ADD COLUMN material_brand VARCHAR(100) DEFAULT NULL AFTER material_desc");
+    } catch (Exception $ex) {
+        // Silent fallthrough
+    }
+}
+
+// Auto-migrate: Ensure gatepass_materials table exists
+try {
+    $pdo->query("SELECT 1 FROM gatepass_materials LIMIT 1");
+} catch (Exception $e) {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS `gatepass_materials` (
+            `id` INT AUTO_INCREMENT PRIMARY KEY,
+            `gatepass_no` VARCHAR(20) NOT NULL,
+            `purpose` VARCHAR(255) NOT NULL,
+            `material_desc` VARCHAR(255) DEFAULT NULL,
+            `material_brand` VARCHAR(100) DEFAULT NULL,
+            `material_serial` VARCHAR(100) DEFAULT NULL,
+            `material_qty` INT DEFAULT 1,
+            `created_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY (`gatepass_no`) REFERENCES `gatepasses` (`gatepass_no`) ON DELETE CASCADE
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+
+        // Copy existing records to gatepass_materials to maintain backward compatibility
+        $pdo->exec("INSERT INTO gatepass_materials (gatepass_no, purpose, material_desc, material_brand, material_serial, material_qty)
+            SELECT gatepass_no, purpose, material_desc, material_brand, material_serial, COALESCE(material_qty, 1)
+            FROM gatepasses
+            WHERE gatepass_no NOT IN (SELECT DISTINCT gatepass_no FROM gatepass_materials)
+              AND (material_desc IS NOT NULL OR purpose IS NOT NULL)");
+    } catch (Exception $ex) {
+        // Silent fallthrough
+    }
+}
 ?>
+

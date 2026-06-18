@@ -14,12 +14,16 @@ $company_org = 'N/A';
 $vehicle_no = 'N/A';
 $purpose = '';
 $material_desc = '';
+$material_brand = '';
 $material_serial = '';
 $material_qty = 1;
 $host_name = 'N/A';
 $department = '';
 $visit_date = date('Y-m-d'); // Default to today
 $visitor_signature = '';
+
+$is_multiple_materials = false;
+$items = [];
 
 // Form submission handler
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -28,16 +32,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $visitor_email = trim($_POST['visitor_email'] ?? '');
     $eid = trim($_POST['eid'] ?? '');
     $company_org = 'N/A';
-    $purpose = trim($_POST['purpose'] ?? '');
-    if ($purpose === 'Others') {
-        $purpose = trim($_POST['custom_purpose'] ?? '');
-    }
-    $material_desc = trim($_POST['material_desc'] ?? '');
-    if ($material_desc === 'Others') {
-        $material_desc = trim($_POST['custom_material_desc'] ?? '');
-    }
-    $material_serial = trim($_POST['material_serial'] ?? '');
-    $material_qty = (int)($_POST['material_qty'] ?? 1);
     $department = trim($_POST['department'] ?? '');
     if ($department === 'Others') {
         $department = trim($_POST['custom_department'] ?? '');
@@ -47,6 +41,82 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $visit_date = date('Y-m-d');
     }
     $visitor_signature = $_POST['visitor_signature'] ?? '';
+
+    $is_multiple_materials = isset($_POST['is_multiple_materials']);
+
+    // Single item inputs (if not multiple)
+    if (!$is_multiple_materials) {
+        $purpose = trim($_POST['purpose'] ?? '');
+        if ($purpose === 'Others') {
+            $purpose = trim($_POST['custom_purpose'] ?? '');
+        }
+        $material_desc = trim($_POST['material_desc'] ?? '');
+        if ($material_desc === 'Others') {
+            $material_desc = trim($_POST['custom_material_desc'] ?? '');
+        }
+        $material_brand = trim($_POST['material_brand'] ?? '');
+        $material_serial = trim($_POST['material_serial'] ?? '');
+        $material_qty = (int)($_POST['material_qty'] ?? 1);
+
+        $items = [[
+            'purpose' => $purpose,
+            'material_desc' => $material_desc,
+            'material_brand' => $material_brand,
+            'material_serial' => $material_serial,
+            'material_qty' => $material_qty,
+            'raw_purpose' => trim($_POST['purpose'] ?? ''),
+            'raw_desc' => trim($_POST['material_desc'] ?? ''),
+            'custom_purpose' => trim($_POST['custom_purpose'] ?? ''),
+            'custom_desc' => trim($_POST['custom_material_desc'] ?? '')
+        ]];
+    } else {
+        $raw_items = $_POST['items'] ?? [];
+        if (empty($raw_items) || !is_array($raw_items)) {
+            $errors['items'] = "At least one material item must be declared.";
+        } else {
+            foreach ($raw_items as $index => $raw_item) {
+                $item_purpose = trim($raw_item['purpose'] ?? '');
+                if ($item_purpose === 'Others') {
+                    $item_purpose = trim($raw_item['custom_purpose'] ?? '');
+                }
+                $item_desc = trim($raw_item['material_desc'] ?? '');
+                if ($item_desc === 'Others') {
+                    $item_desc = trim($raw_item['custom_material_desc'] ?? '');
+                }
+                $item_brand = trim($raw_item['material_brand'] ?? '');
+                $item_serial = trim($raw_item['material_serial'] ?? '');
+                $item_qty = (int)($raw_item['material_qty'] ?? 1);
+
+                if (empty($item_purpose)) {
+                    $errors["item_{$index}_purpose"] = "Asset #" . ($index + 1) . ": Purpose of visit is required.";
+                }
+                if (empty($item_desc)) {
+                    $errors["item_{$index}_desc"] = "Asset #" . ($index + 1) . ": Description is required.";
+                }
+                if (empty($item_brand)) {
+                    $errors["item_{$index}_brand"] = "Asset #" . ($index + 1) . ": Brand is required.";
+                }
+                if (empty($item_serial)) {
+                    $errors["item_{$index}_serial"] = "Asset #" . ($index + 1) . ": Serial / S.No. is required.";
+                }
+                if ($item_qty < 1) {
+                    $errors["item_{$index}_qty"] = "Asset #" . ($index + 1) . ": Quantity must be at least 1.";
+                }
+
+                $items[] = [
+                    'purpose' => $item_purpose,
+                    'material_desc' => $item_desc,
+                    'material_brand' => $item_brand,
+                    'material_serial' => $item_serial,
+                    'material_qty' => $item_qty,
+                    'raw_purpose' => trim($raw_item['purpose'] ?? ''),
+                    'raw_desc' => trim($raw_item['material_desc'] ?? ''),
+                    'custom_purpose' => trim($raw_item['custom_purpose'] ?? ''),
+                    'custom_desc' => trim($raw_item['custom_material_desc'] ?? '')
+                ];
+            }
+        }
+    }
 
     // Form Validations
     if (empty($visitor_name)) $errors['visitor_name'] = "Full Name is required.";
@@ -58,13 +128,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     if (empty($eid)) $errors['eid'] = "Employee ID (EID) / ID is required.";
-    
-    if (empty($purpose)) $errors['purpose'] = "Purpose of visit is required.";
     if (empty($department)) $errors['department'] = "Program/Department is required.";
 
-    if (empty($material_desc)) $errors['material_desc'] = "Material / Asset Description is required.";
-    if (empty($material_serial)) $errors['material_serial'] = "Material Serial / S. No. is required.";
-    if (empty($material_qty) || $material_qty < 1) $errors['material_qty'] = "Quantity must be 1 or greater.";
+    if (!$is_multiple_materials) {
+        if (empty($purpose)) $errors['purpose'] = "Purpose of visit is required.";
+        if (empty($material_desc)) $errors['material_desc'] = "Material / Asset Description is required.";
+        if (empty($material_brand)) $errors['material_brand'] = "Material Brand is required.";
+        if (empty($material_serial)) $errors['material_serial'] = "Material Serial / S. No. is required.";
+        if (empty($material_qty) || $material_qty < 1) $errors['material_qty'] = "Quantity must be 1 or greater.";
+    }
 
     if (empty($visitor_signature)) {
         $errors['visitor_signature'] = "Visitor signature is required when checking in.";
@@ -76,8 +148,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             // Begin transaction
             $pdo->beginTransaction();
 
-            // Generate unique Gatepass Number: GP-YYYYMMDD-XXXX
-            $today_prefix = 'GP-' . date('Ymd') . '-';
+            // Generate unique Gatepass Number: CNX-YYYYMMDD-XXXX
+            $today_prefix = 'CNX-' . date('Ymd') . '-';
             
             // Count passes today to make sequential number
             $stmt = $pdo->prepare("SELECT COUNT(*) FROM gatepasses WHERE gatepass_no LIKE ?");
@@ -94,9 +166,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 $serial++;
             } while ($exists);
 
+            // Populate main table columns from the first item
+            $first_item = $items[0];
+
             // Insert into Database (automatically Checked In with current time)
-            $insert_sql = "INSERT INTO gatepasses (gatepass_no, visitor_name, visitor_email, visitor_phone, eid, company_org, vehicle_no, purpose, material_desc, material_serial, material_qty, host_name, department, visit_date, status, time_in, visitor_signature)
-                           VALUES (:gatepass_no, :visitor_name, :visitor_email, :visitor_phone, :eid, :company_org, :vehicle_no, :purpose, :material_desc, :material_serial, :material_qty, :host_name, :department, :visit_date, 'Checked In', CURRENT_TIME(), :visitor_signature)";
+            $insert_sql = "INSERT INTO gatepasses (gatepass_no, visitor_name, visitor_email, visitor_phone, eid, company_org, vehicle_no, purpose, material_desc, material_brand, material_serial, material_qty, host_name, department, visit_date, status, time_in, visitor_signature)
+                           VALUES (:gatepass_no, :visitor_name, :visitor_email, :visitor_phone, :eid, :company_org, :vehicle_no, :purpose, :material_desc, :material_brand, :material_serial, :material_qty, :host_name, :department, :visit_date, 'Checked In', CURRENT_TIME(), :visitor_signature)";
             
             $stmt = $pdo->prepare($insert_sql);
             $stmt->execute([
@@ -107,15 +182,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'eid' => $eid ?: null,
                 'company_org' => $company_org ?: null,
                 'vehicle_no' => $vehicle_no ?: null,
-                'purpose' => $purpose,
-                'material_desc' => $material_desc ?: null,
-                'material_serial' => $material_serial ?: null,
-                'material_qty' => $material_qty ?: 1,
+                'purpose' => $first_item['purpose'],
+                'material_desc' => $first_item['material_desc'] ?: null,
+                'material_brand' => $first_item['material_brand'] ?: null,
+                'material_serial' => $first_item['material_serial'] ?: null,
+                'material_qty' => $first_item['material_qty'] ?: 1,
                 'host_name' => $host_name,
                 'department' => $department,
                 'visit_date' => $visit_date,
                 'visitor_signature' => $visitor_signature ?: null
             ]);
+
+            // Insert all items into gatepass_materials
+            $insert_m_sql = "INSERT INTO gatepass_materials (gatepass_no, purpose, material_desc, material_brand, material_serial, material_qty)
+                             VALUES (:gatepass_no, :purpose, :material_desc, :material_brand, :material_serial, :material_qty)";
+            $stmt_m = $pdo->prepare($insert_m_sql);
+            foreach ($items as $item) {
+                $stmt_m->execute([
+                    'gatepass_no' => $gatepass_no,
+                    'purpose' => $item['purpose'],
+                    'material_desc' => $item['material_desc'] ?: null,
+                    'material_brand' => $item['material_brand'] ?: null,
+                    'material_serial' => $item['material_serial'] ?: null,
+                    'material_qty' => $item['material_qty'] ?: 1
+                ]);
+            }
 
             // Commit transaction
             $pdo->commit();
@@ -141,11 +232,7 @@ require_once __DIR__ . '/includes/header.php';
 ?>
 
 <div class="max-w-2xl mx-auto py-4">
-    <!-- Breadcrumb -->
-    <a href="index.php" class="text-sm font-semibold text-slate-400 hover:text-white transition-colors flex items-center space-x-1.5 mb-6 group">
-        <i class="fa-solid fa-chevron-left group-hover:-translate-x-1 transition-transform"></i>
-        <span>Back to Welcome Page</span>
-    </a>
+
 
     <!-- Header Card -->
     <div class="text-center mb-8">
@@ -309,62 +396,183 @@ require_once __DIR__ . '/includes/header.php';
                 <h3 class="text-xs font-bold uppercase tracking-wider text-brand-teal mb-4 border-b border-dark-800 pb-2 font-display">
                     3. Material Movement & Signature
                 </h3>
-                
-                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                    <!-- Material Description -->
-                    <div class="space-y-1.5 md:col-span-1" id="material-desc-container">
-                        <label for="material_desc" class="text-xs font-bold text-slate-300 uppercase tracking-wide md:h-12 flex items-end pb-1">Material / Asset Description <span class="text-rose-500">*</span></label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-laptop text-xs"></i></span>
-                            <select id="material_desc" name="material_desc" required
-                                    class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_desc']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all appearance-none cursor-pointer">
-                                <option value="" disabled <?php echo ($material_desc === '') ? 'selected' : ''; ?>>Select Asset Type</option>
-                                <option value="CPU" <?php echo $material_desc === 'CPU' ? 'selected' : ''; ?>>CPU</option>
-                                <option value="Laptop" <?php echo $material_desc === 'Laptop' ? 'selected' : ''; ?>>Laptop</option>
-                                <option value="Headset" <?php echo $material_desc === 'Headset' ? 'selected' : ''; ?>>Headset</option>
-                                <option value="Others" <?php echo ($material_desc && !in_array($material_desc, ['CPU', 'Laptop', 'Headset'])) ? 'selected' : ''; ?>>Others</option>
-                            </select>
-                        </div>
 
-                        <!-- Custom Material Desc Input (Shown when 'Others' is selected) -->
-                        <div id="custom-material-desc-wrapper" class="relative mt-2 <?php echo ($material_desc && !in_array($material_desc, ['CPU', 'Laptop', 'Headset'])) ? '' : 'hidden'; ?>">
-                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-pen text-xs"></i></span>
-                            <input type="text" id="custom_material_desc" name="custom_material_desc"
-                                   value="<?php echo ($material_desc && !in_array($material_desc, ['CPU', 'Laptop', 'Headset'])) ? htmlspecialchars($material_desc) : ''; ?>"
-                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-dark-800 focus:border-brand-teal focus:ring-brand-teal rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
-                                   placeholder="Please specify asset description">
-                        </div>
-
-                        <?php if (isset($errors['material_desc'])): ?>
-                            <p class="text-rose-400 text-[11px]"><?php echo $errors['material_desc']; ?></p>
-                        <?php endif; ?>
+                <!-- Declare Multiple Items Checkbox Switch -->
+                <div class="mb-6 p-4 rounded-xl bg-dark-950/40 border border-dark-800/60 flex items-center justify-between">
+                    <div class="space-y-0.5 pr-4">
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200">Declare Multiple Items</h4>
+                        <p class="text-[10px] text-slate-500">Enable this if you have more than one device or asset to log under this pass.</p>
                     </div>
+                    <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 select-none">
+                        <input type="checkbox" id="is_multiple_materials" name="is_multiple_materials" class="sr-only peer" <?php echo $is_multiple_materials ? 'checked' : ''; ?>>
+                        <div class="w-11 h-6 bg-dark-900 peer-focus:outline-none rounded-full border border-dark-800 peer-checked:bg-brand-teal/20 peer-checked:border-brand-teal/60 peer-checked:after:bg-brand-teal peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-slate-500 after:rounded-full after:h-4 after:w-4 after:transition-all duration-300"></div>
+                    </label>
+                </div>
 
-                    <!-- Material Serial No (S. No.) -->
-                    <div class="space-y-1.5 md:col-span-1">
-                        <label for="material_serial" class="text-xs font-bold text-slate-300 uppercase tracking-wide font-display md:h-12 flex items-end pb-1">Material Serial / S. No. <span class="text-rose-500">*</span></label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-barcode text-xs"></i></span>
-                            <input type="text" id="material_serial" name="material_serial" required value="<?php echo htmlspecialchars($material_serial); ?>"
-                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_serial']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
-                                   placeholder="e.g. 5CD5266N9G">
+                <!-- Dynamic Multiple Materials Wrapper -->
+                <div id="multiple-materials-wrapper" class="hidden space-y-4 mb-6">
+                    <div id="materials-list" class="space-y-4"></div>
+                    <button type="button" id="add-material-btn" class="w-full py-2.5 bg-dark-900 hover:bg-dark-850 border border-dark-800 hover:border-brand-teal/40 text-slate-350 hover:text-brand-teal font-semibold text-xs rounded-xl flex items-center justify-center space-x-2 transition-all">
+                        <i class="fa-solid fa-plus text-[10px]"></i>
+                        <span>Add Another Material / Asset</span>
+                    </button>
+                </div>
+
+                <!-- Dynamic Material Item Template -->
+                <template id="material-item-template">
+                    <div class="material-item-card p-5 rounded-2xl border border-dark-800 bg-dark-950/40 relative space-y-4 transition-all duration-300">
+                        <!-- Card Header -->
+                        <div class="flex items-center justify-between border-b border-dark-900/60 pb-2">
+                            <span class="text-xs font-bold text-brand-teal/80 tracking-wider uppercase item-number-label">Asset #1</span>
+                            <button type="button" class="remove-item-btn text-rose-500 hover:text-rose-450 hover:bg-rose-500/10 px-2.5 py-1 rounded-lg text-[10px] font-bold transition-all flex items-center gap-1.5">
+                                <i class="fa-solid fa-trash-can text-[9px]"></i>
+                                <span>Remove</span>
+                            </button>
                         </div>
-                        <?php if (isset($errors['material_serial'])): ?>
-                            <p class="text-rose-400 text-[11px]"><?php echo $errors['material_serial']; ?></p>
-                        <?php endif; ?>
+                        
+                        <!-- Grid fields -->
+                        <div class="grid grid-cols-1 md:grid-cols-12 gap-4">
+                            <!-- Purpose of Visit -->
+                            <div class="space-y-1.5 md:col-span-6">
+                                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide">Purpose of Visit <span class="text-rose-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-circle-question text-xs"></i></span>
+                                    <select name="items[INDEX][purpose]" class="item-purpose w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-dark-800 focus:border-brand-teal focus:ring-brand-teal rounded-xl text-white text-sm focus:outline-none transition-all appearance-none cursor-pointer">
+                                        <option value="" disabled selected>Select Purpose</option>
+                                        <option value="Re-image">Re-image</option>
+                                        <option value="Replacement">Replacement</option>
+                                        <option value="Others">Others</option>
+                                    </select>
+                                </div>
+                                <!-- Custom Purpose -->
+                                <div class="custom-purpose-wrapper relative mt-2 hidden">
+                                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-pen text-xs"></i></span>
+                                    <input type="text" name="items[INDEX][custom_purpose]" class="item-custom-purpose w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-dark-800 focus:border-brand-teal focus:ring-brand-teal rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none transition-all" placeholder="Specify purpose">
+                                </div>
+                            </div>
+
+                            <!-- Material / Asset Description -->
+                            <div class="space-y-1.5 md:col-span-6">
+                                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide">Description <span class="text-rose-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-laptop text-xs"></i></span>
+                                    <select name="items[INDEX][material_desc]" class="item-desc w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-dark-800 focus:border-brand-teal focus:ring-brand-teal rounded-xl text-white text-sm focus:outline-none transition-all appearance-none cursor-pointer">
+                                        <option value="" disabled selected>Select Asset</option>
+                                        <option value="CPU">CPU</option>
+                                        <option value="Laptop">Laptop</option>
+                                        <option value="Headset">Headset</option>
+                                        <option value="Others">Others</option>
+                                    </select>
+                                </div>
+                                <!-- Custom Material Desc -->
+                                <div class="custom-material-desc-wrapper relative mt-2 hidden">
+                                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-pen text-xs"></i></span>
+                                    <input type="text" name="items[INDEX][custom_material_desc]" class="item-custom-desc w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-dark-800 focus:border-brand-teal focus:ring-brand-teal rounded-xl text-white text-sm placeholder-slate-500 focus:outline-none transition-all" placeholder="Specify asset description">
+                                </div>
+                            </div>
+
+                            <!-- Brand -->
+                            <div class="space-y-1.5 md:col-span-5">
+                                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide">Brand <span class="text-rose-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-tag text-xs"></i></span>
+                                    <input type="text" name="items[INDEX][material_brand]" class="item-brand w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-dark-800 focus:border-brand-teal focus:ring-brand-teal rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none transition-all" placeholder="e.g. Dell">
+                                </div>
+                            </div>
+
+                            <!-- Serial No -->
+                            <div class="space-y-1.5 md:col-span-5">
+                                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide">Serial / S.No. <span class="text-rose-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-barcode text-xs"></i></span>
+                                    <input type="text" name="items[INDEX][material_serial]" class="item-serial w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-dark-800 focus:border-brand-teal focus:ring-brand-teal rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none transition-all" placeholder="e.g. 5CD52">
+                                </div>
+                            </div>
+
+                            <!-- Quantity -->
+                            <div class="space-y-1.5 md:col-span-2">
+                                <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide">Qty <span class="text-rose-500">*</span></label>
+                                <div class="relative">
+                                    <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-arrow-up-1-9 text-xs"></i></span>
+                                    <input type="number" name="items[INDEX][material_qty]" min="1" value="1" class="item-qty w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-dark-800 focus:border-brand-teal focus:ring-brand-teal rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none transition-all">
+                                </div>
+                            </div>
+                        </div>
                     </div>
+                </template>
 
-                    <!-- Material Qty -->
-                    <div class="space-y-1.5 md:col-span-1">
-                        <label for="material_qty" class="text-xs font-bold text-slate-300 uppercase tracking-wide md:h-12 flex items-end pb-1">Quantity <span class="text-rose-500">*</span></label>
-                        <div class="relative">
-                            <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-arrow-up-1-9 text-xs"></i></span>
-                            <input type="number" id="material_qty" name="material_qty" min="1" required value="<?php echo htmlspecialchars($material_qty); ?>"
-                                   class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_qty']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all">
+                <!-- Single Material Wrapper (Legacy Single Fields) -->
+                <div id="single-material-wrapper">
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 mb-6">
+                        <!-- Material Description -->
+                        <div class="space-y-1.5 lg:col-span-4" id="material-desc-container">
+                            <label for="material_desc" class="text-xs font-bold text-slate-300 uppercase tracking-wide lg:h-12 flex items-end pb-1">Material / Asset Description <span class="text-rose-500">*</span></label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-laptop text-xs"></i></span>
+                                <select id="material_desc" name="material_desc" required
+                                        class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_desc']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?>> rounded-xl text-white text-sm focus:outline-none focus:ring-1 transition-all appearance-none cursor-pointer">
+                                    <option value="" disabled <?php echo ($material_desc === '') ? 'selected' : ''; ?>>Select Asset</option>
+                                    <option value="CPU" <?php echo $material_desc === 'CPU' ? 'selected' : ''; ?>>CPU</option>
+                                    <option value="Laptop" <?php echo $material_desc === 'Laptop' ? 'selected' : ''; ?>>Laptop</option>
+                                    <option value="Headset" <?php echo $material_desc === 'Headset' ? 'selected' : ''; ?>>Headset</option>
+                                    <option value="Others" <?php echo ($material_desc && !in_array($material_desc, ['CPU', 'Laptop', 'Headset'])) ? 'selected' : ''; ?>>Others</option>
+                                </select>
+                            </div>
+
+                            <!-- Custom Material Desc Input (Shown when 'Others' is selected) -->
+                            <div id="custom-material-desc-wrapper" class="relative mt-2 <?php echo ($material_desc && !in_array($material_desc, ['CPU', 'Laptop', 'Headset'])) ? '' : 'hidden'; ?>">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-pen text-xs"></i></span>
+                                <input type="text" id="custom_material_desc" name="custom_material_desc"
+                                       value="<?php echo ($material_desc && !in_array($material_desc, ['CPU', 'Laptop', 'Headset'])) ? htmlspecialchars($material_desc) : ''; ?>"
+                                       class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border border-dark-800 focus:border-brand-teal focus:ring-brand-teal rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
+                                       placeholder="Please specify asset description">
+                            </div>
+
+                            <?php if (isset($errors['material_desc'])): ?>
+                                <p class="text-rose-400 text-[11px]"><?php echo $errors['material_desc']; ?></p>
+                            <?php endif; ?>
                         </div>
-                        <?php if (isset($errors['material_qty'])): ?>
-                            <p class="text-rose-400 text-[11px]"><?php echo $errors['material_qty']; ?></p>
-                        <?php endif; ?>
+
+                        <!-- Material Brand -->
+                        <div class="space-y-1.5 lg:col-span-3">
+                            <label for="material_brand" class="text-xs font-bold text-slate-300 uppercase tracking-wide lg:h-12 flex items-end pb-1">Material Brand <span class="text-rose-500">*</span></label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-tag text-xs"></i></span>
+                                <input type="text" id="material_brand" name="material_brand" required value="<?php echo htmlspecialchars($material_brand); ?>"
+                                       class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_brand']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
+                                       placeholder="e.g. Dell, HP, Apple">
+                            </div>
+                            <?php if (isset($errors['material_brand'])): ?>
+                                <p class="text-rose-400 text-[11px]"><?php echo $errors['material_brand']; ?></p>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Material Serial No (S. No.) -->
+                        <div class="space-y-1.5 lg:col-span-3">
+                            <label for="material_serial" class="text-xs font-bold text-slate-300 uppercase tracking-wide font-display lg:h-12 flex items-end pb-1">Material Serial / S. No. <span class="text-rose-500">*</span></label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-barcode text-xs"></i></span>
+                                <input type="text" id="material_serial" name="material_serial" required value="<?php echo htmlspecialchars($material_serial); ?>"
+                                       class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_serial']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all"
+                                       placeholder="e.g. 5CD5266N9G">
+                            </div>
+                            <?php if (isset($errors['material_serial'])): ?>
+                                <p class="text-rose-400 text-[11px]"><?php echo $errors['material_serial']; ?></p>
+                            <?php endif; ?>
+                        </div>
+
+                        <!-- Material Qty -->
+                        <div class="space-y-1.5 lg:col-span-2">
+                            <label for="material_qty" class="text-xs font-bold text-slate-300 uppercase tracking-wide lg:h-12 flex items-end pb-1">Quantity <span class="text-rose-500">*</span></label>
+                            <div class="relative">
+                                <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-arrow-up-1-9 text-xs"></i></span>
+                                <input type="number" id="material_qty" name="material_qty" min="1" required value="<?php echo htmlspecialchars($material_qty); ?>"
+                                       class="w-full pl-9 pr-4 py-2.5 bg-dark-900 border <?php echo isset($errors['material_qty']) ? 'border-rose-500/80 focus:border-rose-500 focus:ring-rose-500' : 'border-dark-800 focus:border-brand-teal focus:ring-brand-teal'; ?> rounded-xl text-white placeholder-slate-500 text-sm focus:outline-none focus:ring-1 transition-all">
+                            </div>
+                            <?php if (isset($errors['material_qty'])): ?>
+                                <p class="text-rose-400 text-[11px]"><?php echo $errors['material_qty']; ?></p>
+                            <?php endif; ?>
+                        </div>
                     </div>
                 </div>
 
@@ -431,6 +639,250 @@ require_once __DIR__ . '/includes/header.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', () => {
+    // Helper function to restrict material description options if purpose is Re-image
+    function filterDescOptions(purposeValue, descSelect) {
+        if (!descSelect) return;
+        
+        const wrapper = descSelect.closest('.custom-select-wrapper');
+        const dropdown = wrapper ? wrapper.querySelector('.custom-select-dropdown') : null;
+        
+        if (purposeValue === 'Re-image') {
+            // Automatically set value to CPU if it is not already
+            if (descSelect.value !== 'CPU') {
+                descSelect.value = 'CPU';
+                descSelect.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+            
+            // Disable native option elements
+            Array.from(descSelect.options).forEach(opt => {
+                if (opt.value !== 'CPU' && opt.value !== '') {
+                    opt.disabled = true;
+                } else {
+                    opt.disabled = false;
+                }
+            });
+            
+            // Hide custom options divs
+            if (dropdown) {
+                dropdown.querySelectorAll('.custom-select-option').forEach(optDiv => {
+                    const val = optDiv.getAttribute('data-value');
+                    if (val !== 'CPU' && val !== '') {
+                        optDiv.style.display = 'none';
+                    } else {
+                        optDiv.style.display = '';
+                    }
+                });
+            }
+        } else {
+            // Restore native options
+            Array.from(descSelect.options).forEach(opt => {
+                opt.disabled = false;
+            });
+            
+            // Restore custom options divs
+            if (dropdown) {
+                dropdown.querySelectorAll('.custom-select-option').forEach(optDiv => {
+                    optDiv.style.display = '';
+                });
+            }
+        }
+    }
+
+    // Dynamic Multi-Materials Scripting
+    const multipleCheckbox = document.getElementById('is_multiple_materials');
+    const singleMaterialWrapper = document.getElementById('single-material-wrapper');
+    const multipleMaterialsWrapper = document.getElementById('multiple-materials-wrapper');
+    const purposeContainer = document.getElementById('purpose-container');
+    const addMaterialBtn = document.getElementById('add-material-btn');
+    const materialsList = document.getElementById('materials-list');
+
+    let materialIndex = 0;
+
+    function addMaterialItem(data = null) {
+        const template = document.getElementById('material-item-template');
+        if (!template) return;
+        const clone = template.content.cloneNode(true);
+        
+        // Replace INDEX prefix in names
+        clone.querySelectorAll('[name*="INDEX"]').forEach(el => {
+            el.name = el.name.replace('INDEX', materialIndex);
+        });
+        
+        const card = clone.querySelector('.material-item-card');
+        
+        const itemPurposeSelect = clone.querySelector('.item-purpose');
+        const customPurposeWrapper = clone.querySelector('.custom-purpose-wrapper');
+        const customPurposeInput = clone.querySelector('.item-custom-purpose');
+
+        const itemDescSelect = clone.querySelector('.item-desc');
+        const customDescWrapper = clone.querySelector('.custom-material-desc-wrapper');
+        const customDescInput = clone.querySelector('.item-custom-desc');
+
+        const brandInput = clone.querySelector('.item-brand');
+        const serialInput = clone.querySelector('.item-serial');
+        const qtyInput = clone.querySelector('.item-qty');
+        
+        // Populate inputs if data is provided
+        if (data) {
+            itemPurposeSelect.value = data.raw_purpose || '';
+            if (data.raw_purpose === 'Others') {
+                customPurposeWrapper.classList.remove('hidden');
+                customPurposeInput.value = data.custom_purpose || '';
+            }
+            
+            itemDescSelect.value = data.raw_desc || '';
+            if (data.raw_desc === 'Others') {
+                customDescWrapper.classList.remove('hidden');
+                customDescInput.value = data.custom_desc || '';
+            }
+            
+            brandInput.value = data.material_brand || '';
+            serialInput.value = data.material_serial || '';
+            qtyInput.value = data.material_qty || 1;
+        }
+
+        // Add purpose dropdown change behavior
+        itemPurposeSelect.addEventListener('change', () => {
+            if (itemPurposeSelect.value === 'Others') {
+                customPurposeWrapper.classList.remove('hidden');
+                if (multipleCheckbox.checked) {
+                    customPurposeInput.required = true;
+                }
+            } else {
+                customPurposeWrapper.classList.add('hidden');
+                customPurposeInput.required = false;
+                customPurposeInput.value = '';
+            }
+            // Filter options when purpose is Re-image
+            filterDescOptions(itemPurposeSelect.value, itemDescSelect);
+        });
+
+        // Add material description dropdown change behavior
+        itemDescSelect.addEventListener('change', () => {
+            if (itemDescSelect.value === 'Others') {
+                customDescWrapper.classList.remove('hidden');
+                if (multipleCheckbox.checked) {
+                    customDescInput.required = true;
+                }
+            } else {
+                customDescWrapper.classList.add('hidden');
+                customDescInput.required = false;
+                customDescInput.value = '';
+            }
+        });
+
+        // Remove button handler
+        clone.querySelector('.remove-item-btn').addEventListener('click', () => {
+            const cards = materialsList.querySelectorAll('.material-item-card');
+            if (cards.length <= 1) {
+                alert("At least one material item is required.");
+                return;
+            }
+            card.remove();
+            updateItemNumbers();
+        });
+
+        materialsList.appendChild(clone);
+        
+        // Initialize custom selects on dynamically added elements
+        if (typeof initCustomSelects === 'function') {
+            initCustomSelects();
+        }
+
+        // Apply dynamic option filtering on initial card rendering
+        filterDescOptions(itemPurposeSelect.value, itemDescSelect);
+
+        materialIndex++;
+        updateItemNumbers();
+        toggleRequiredFields();
+    }
+
+    function updateItemNumbers() {
+        const labels = materialsList.querySelectorAll('.item-number-label');
+        labels.forEach((label, idx) => {
+            label.textContent = `Asset #${idx + 1}`;
+        });
+    }
+
+    function toggleRequiredFields() {
+        const isMultiple = multipleCheckbox.checked;
+        
+        // Single field requirements
+        const purposeSelect = document.getElementById('purpose');
+        const customPurposeInput = document.getElementById('custom_purpose');
+        const materialDescSelect = document.getElementById('material_desc');
+        const customMaterialDescInput = document.getElementById('custom_material_desc');
+        const brandInput = document.getElementById('material_brand');
+        const serialInput = document.getElementById('material_serial');
+        const qtyInput = document.getElementById('material_qty');
+        
+        if (purposeSelect) purposeSelect.required = !isMultiple;
+        if (customPurposeInput) customPurposeInput.required = (!isMultiple && purposeSelect && purposeSelect.value === 'Others');
+        if (materialDescSelect) materialDescSelect.required = !isMultiple;
+        if (customMaterialDescInput) customMaterialDescInput.required = (!isMultiple && materialDescSelect && materialDescSelect.value === 'Others');
+        if (brandInput) brandInput.required = !isMultiple;
+        if (serialInput) serialInput.required = !isMultiple;
+        if (qtyInput) qtyInput.required = !isMultiple;
+        
+        // Dynamic field requirements
+        const cards = materialsList.querySelectorAll('.material-item-card');
+        cards.forEach(card => {
+            const itemPurpose = card.querySelector('.item-purpose');
+            const itemCustomPurpose = card.querySelector('.item-custom-purpose');
+            const itemDesc = card.querySelector('.item-desc');
+            const itemCustomDesc = card.querySelector('.item-custom-desc');
+            const itemBrand = card.querySelector('.item-brand');
+            const itemSerial = card.querySelector('.item-serial');
+            const itemQty = card.querySelector('.item-qty');
+            
+            if (itemPurpose) itemPurpose.required = isMultiple;
+            if (itemCustomPurpose) itemCustomPurpose.required = (isMultiple && itemPurpose && itemPurpose.value === 'Others');
+            if (itemDesc) itemDesc.required = isMultiple;
+            if (itemCustomDesc) itemCustomDesc.required = (isMultiple && itemDesc && itemDesc.value === 'Others');
+            if (itemBrand) itemBrand.required = isMultiple;
+            if (itemSerial) itemSerial.required = isMultiple;
+            if (itemQty) itemQty.required = isMultiple;
+        });
+    }
+
+    if (multipleCheckbox) {
+        multipleCheckbox.addEventListener('change', () => {
+            const isMultiple = multipleCheckbox.checked;
+            if (isMultiple) {
+                singleMaterialWrapper.classList.add('hidden');
+                purposeContainer.classList.add('hidden');
+                multipleMaterialsWrapper.classList.remove('hidden');
+                
+                // If no items have been added, initialize one item
+                if (materialsList.querySelectorAll('.material-item-card').length === 0) {
+                    addMaterialItem();
+                }
+            } else {
+                singleMaterialWrapper.classList.remove('hidden');
+                purposeContainer.classList.remove('hidden');
+                multipleMaterialsWrapper.classList.add('hidden');
+            }
+            toggleRequiredFields();
+        });
+    }
+
+    if (addMaterialBtn) {
+        addMaterialBtn.addEventListener('click', () => {
+            addMaterialItem();
+        });
+    }
+
+    <?php if ($is_multiple_materials && !empty($items)): ?>
+        multipleCheckbox.checked = true;
+        // Trigger UI setup
+        singleMaterialWrapper.classList.add('hidden');
+        purposeContainer.classList.add('hidden');
+        multipleMaterialsWrapper.classList.remove('hidden');
+        <?php foreach ($items as $item): ?>
+            addMaterialItem(<?php echo json_encode($item); ?>);
+        <?php endforeach; ?>
+    <?php endif; ?>
+
     // Toggle Custom Department Input visibility
     const deptSelect = document.getElementById('department');
     const customDeptWrapper = document.getElementById('custom-department-wrapper');
@@ -467,9 +919,19 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     if (purposeSelect && customPurposeWrapper && customPurposeInput) {
-        purposeSelect.addEventListener('change', toggleCustomPurpose);
+        purposeSelect.addEventListener('change', () => {
+            toggleCustomPurpose();
+            filterDescOptions(purposeSelect.value, document.getElementById('material_desc'));
+        });
         toggleCustomPurpose();
     }
+
+    // Initial sync for single fields on load after custom select trigger is initialized
+    setTimeout(() => {
+        if (purposeSelect) {
+            filterDescOptions(purposeSelect.value, document.getElementById('material_desc'));
+        }
+    }, 0);
 
     // Toggle Custom Material Desc Input visibility
     const materialDescSelect = document.getElementById('material_desc');
@@ -661,6 +1123,7 @@ document.addEventListener('DOMContentLoaded', () => {
         const matDescVal = materialDescSelect.value;
         const customMatDescVal = customMaterialDescInput.value.trim();
         
+        const brandVal = document.getElementById('material_brand').value.trim();
         const serialVal = document.getElementById('material_serial').value.trim();
         const qtyVal = parseInt(document.getElementById('material_qty').value);
         const signatureVal = sigInput.value.trim();
@@ -683,22 +1146,66 @@ document.addEventListener('DOMContentLoaded', () => {
             errors.push("Please specify the program/department name.");
         }
         
-        if (!purpVal) {
-            errors.push("Purpose of Visit selection is required.");
-        } else if (purpVal === 'Others' && !customPurpVal) {
-            errors.push("Please specify the purpose of visit.");
-        }
-        
-        if (!matDescVal) {
-            errors.push("Material / Asset Description selection is required.");
-        } else if (matDescVal === 'Others' && !customMatDescVal) {
-            errors.push("Please specify the asset description.");
-        }
-        
-        if (!serialVal) errors.push("Material Serial / S. No. is required.");
-        
-        if (isNaN(qtyVal) || qtyVal < 1) {
-            errors.push("Quantity must be 1 or greater.");
+        const isMultiple = multipleCheckbox.checked;
+        if (isMultiple) {
+            const cards = materialsList.querySelectorAll('.material-item-card');
+            if (cards.length === 0) {
+                errors.push("At least one material item must be added.");
+            } else {
+                cards.forEach((card, idx) => {
+                    const num = idx + 1;
+                    const itemPurposeSelect = card.querySelector('.item-purpose');
+                    const itemPurposeVal = itemPurposeSelect ? itemPurposeSelect.value : '';
+                    const itemCustomPurposeInput = card.querySelector('.item-custom-purpose');
+                    const itemCustomPurposeVal = itemCustomPurposeInput ? itemCustomPurposeInput.value.trim() : '';
+
+                    const itemDescSelect = card.querySelector('.item-desc');
+                    const itemDescVal = itemDescSelect ? itemDescSelect.value : '';
+                    const itemCustomDescInput = card.querySelector('.item-custom-desc');
+                    const itemCustomDescVal = itemCustomDescInput ? itemCustomDescInput.value.trim() : '';
+
+                    const itemBrandVal = card.querySelector('.item-brand').value.trim();
+                    const itemSerialVal = card.querySelector('.item-serial').value.trim();
+                    const itemQtyVal = parseInt(card.querySelector('.item-qty').value);
+
+                    if (!itemPurposeVal) {
+                        errors.push(`Asset #${num}: Purpose of Visit selection is required.`);
+                    } else if (itemPurposeVal === 'Others' && !itemCustomPurposeVal) {
+                        errors.push(`Asset #${num}: Please specify the purpose of visit.`);
+                    }
+
+                    if (!itemDescVal) {
+                        errors.push(`Asset #${num}: Description selection is required.`);
+                    } else if (itemDescVal === 'Others' && !itemCustomDescVal) {
+                        errors.push(`Asset #${num}: Please specify the asset description.`);
+                    }
+
+                    if (!itemBrandVal) errors.push(`Asset #${num}: Material Brand is required.`);
+                    if (!itemSerialVal) errors.push(`Asset #${num}: Material Serial / S. No. is required.`);
+                    if (isNaN(itemQtyVal) || itemQtyVal < 1) {
+                        errors.push(`Asset #${num}: Quantity must be 1 or greater.`);
+                    }
+                });
+            }
+        } else {
+            if (!purpVal) {
+                errors.push("Purpose of Visit selection is required.");
+            } else if (purpVal === 'Others' && !customPurpVal) {
+                errors.push("Please specify the purpose of visit.");
+            }
+            
+            if (!matDescVal) {
+                errors.push("Material / Asset Description selection is required.");
+            } else if (matDescVal === 'Others' && !customMatDescVal) {
+                errors.push("Please specify the asset description.");
+            }
+            
+            if (!brandVal) errors.push("Material Brand is required.");
+            if (!serialVal) errors.push("Material Serial / S. No. is required.");
+            
+            if (isNaN(qtyVal) || qtyVal < 1) {
+                errors.push("Quantity must be 1 or greater.");
+            }
         }
         
         if (!signatureVal) {

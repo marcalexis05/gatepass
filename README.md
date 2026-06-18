@@ -7,7 +7,7 @@ Gatepass Pro is a secure, contactless, and responsive Visitor Gatepass Managemen
 ## 🚀 Key Features
 
 * **Contactless QR-Code Registration:** A printed Lobby QR Code is scanned by visitors' mobile phones, which redirects them to a responsive, mobile-friendly registration form.
-* **Instant Digital Ticket Generation:** After form submission, a digital pass with a unique identifier (`GP-YYYYMMDD-XXXX`) and an active verification QR Code is displayed on the visitor's screen.
+* **Instant Digital Ticket Generation:** After form submission, a digital pass with a unique identifier (`CNX-YYYYMMDD-XXXX`) and an active verification QR Code is displayed on the visitor's screen.
 * **Real-time Status Verification:** Security guards or admins can scan the visitor's ticket QR code to verify details and perform quick status updates: Approve, Reject, Check In, and Check Out.
 * **Automatic Gmail/SMTP Dispatch:** Connects with Gmail SMTP via PHPMailer to send customized HTML confirmation passes directly to visitors and administrators.
 * **Command Dashboard & Telemetry:** Monitors visitor flows, pending approvals, and active visitor counts from a centralized premium dark-mode console.
@@ -72,7 +72,7 @@ Follow these simple steps to host the Gatepass System on your local XAMPP stack:
 
 ### 3. Administrator Credentials
 * **Username:** `admin`
-* **Password:** `password123`
+* **Password:** `Jd$izdadJd$izdad`
 * *Note: It is highly recommended to update your username and password immediately on the **Settings** page after logging in.*
 
 ### 4. Running the System
