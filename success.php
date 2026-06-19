@@ -411,8 +411,8 @@ require_once __DIR__ . '/includes/header.php';
 
                     <div class="space-y-1.5">
                         <label class="block text-[10px] font-bold text-slate-355 uppercase tracking-wide">IT Incharge Signature <span class="text-rose-500">*</span></label>
-                        <div class="relative bg-slate-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
-                            <canvas id="manager-signature-pad" class="w-full h-32 cursor-crosshair bg-slate-950 block"></canvas>
+                        <div class="relative bg-dark-950/45 border border-dark-800/80 rounded-xl overflow-hidden shadow-inner">
+                            <canvas id="manager-signature-pad" class="w-full h-32 cursor-crosshair bg-transparent block"></canvas>
                             <button type="button" id="clear-manager-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all flex items-center gap-1">
                                 <i class="fa-solid fa-eraser"></i> <span>Clear</span>
                             </button>
@@ -487,15 +487,108 @@ document.addEventListener('DOMContentLoaded', () => {
         const btn = document.getElementById('manager-sign-btn');
         let drawing = false;
 
+        let lastWidth = 0;
+        let lastHeight = 0;
         function resizeCanvas() {
-            canvas.width = canvas.offsetWidth;
-            canvas.height = canvas.offsetHeight;
+            const currentWidth = canvas.offsetWidth;
+            const currentHeight = canvas.offsetHeight;
+            
+            if (currentWidth === lastWidth && currentHeight === lastHeight) {
+                return;
+            }
+            
+            let tempCanvas = null;
+            if (lastWidth > 0 && lastHeight > 0) {
+                tempCanvas = document.createElement('canvas');
+                tempCanvas.width = canvas.width;
+                tempCanvas.height = canvas.height;
+                const tempCtx = tempCanvas.getContext('2d');
+                tempCtx.drawImage(canvas, 0, 0);
+            }
+            
+            canvas.width = currentWidth;
+            canvas.height = currentHeight;
             ctx.lineWidth = 3;
             ctx.lineCap = 'round';
             ctx.strokeStyle = '#ffffff';
+            
+            if (tempCanvas) {
+                ctx.drawImage(tempCanvas, 0, 0, currentWidth, currentHeight);
+                sigInput.value = window.getInvertedDataURL(canvas);
+            } else if (sigInput.value) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // Invert dark/black signature to white ink for screen display
+                    try {
+                        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imgData.data;
+                        let inverted = false;
+                        for (let i = 0; i < data.length; i += 4) {
+                            if (data[i + 3] > 0) {
+                                const isDark = (data[i] + data[i+1] + data[i+2]) / 3 < 128;
+                                if (isDark) {
+                                    data[i] = 255 - data[i];
+                                    data[i+1] = 255 - data[i+1];
+                                    data[i+2] = 255 - data[i+2];
+                                    inverted = true;
+                                }
+                            }
+                        }
+                        if (inverted) {
+                            ctx.putImageData(imgData, 0, 0);
+                        }
+                    } catch (e) {
+                        console.error("Error inverting signature loaded into success canvas:", e);
+                    }
+                };
+                img.src = sigInput.value;
+            }
+            
+            lastWidth = currentWidth;
+            lastHeight = currentHeight;
         }
         resizeCanvas();
         window.addEventListener('resize', resizeCanvas);
+
+        sigInput.addEventListener('change', () => {
+            if (sigInput.value) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                    ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    
+                    // Invert dark/black signature to white ink for screen display
+                    try {
+                        const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                        const data = imgData.data;
+                        let inverted = false;
+                        for (let i = 0; i < data.length; i += 4) {
+                            if (data[i + 3] > 0) {
+                                const isDark = (data[i] + data[i+1] + data[i+2]) / 3 < 128;
+                                if (isDark) {
+                                    data[i] = 255 - data[i];
+                                    data[i+1] = 255 - data[i+1];
+                                    data[i+2] = 255 - data[i+2];
+                                    inverted = true;
+                                }
+                            }
+                        }
+                        if (inverted) {
+                            ctx.putImageData(imgData, 0, 0);
+                        }
+                    } catch (e) {
+                        console.error("Error inverting signature loaded from modal into success canvas:", e);
+                    }
+                };
+                img.src = sigInput.value;
+            } else {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+            }
+            updateBtn();
+        });
 
         function getPos(e) {
             const rect = canvas.getBoundingClientRect();
@@ -526,7 +619,7 @@ document.addEventListener('DOMContentLoaded', () => {
         function stopDrawing() {
             if (drawing) {
                 drawing = false;
-                sigInput.value = canvas.toDataURL();
+                sigInput.value = window.getInvertedDataURL(canvas);
                 updateBtn();
             }
         }
@@ -610,6 +703,10 @@ document.addEventListener('DOMContentLoaded', () => {
 </script>
 
 <style>
+img.signature-img {
+    background: transparent !important;
+    filter: invert(1) !important;
+}
 /* ===================================================
    PRINT: Force single A4 page — success.php
    =================================================== */
@@ -791,8 +888,8 @@ document.addEventListener('DOMContentLoaded', () => {
     .border-t { border-top: 1px solid #000 !important; }
     .border-r { border-right: 1px solid #000 !important; }
     .border { border: 1px solid #000 !important; }
-    /* 15. Invert signature drawings */
-    img.signature-img { filter: invert(1) !important; }
+    /* 15. Invert signature drawings during print */
+    img.signature-img { filter: none !important; }
     /* 16. Instructions override */
     #gatepass-card .instructions-section * {
         line-height: 1.5 !important;

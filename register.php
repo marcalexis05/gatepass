@@ -578,9 +578,9 @@ require_once __DIR__ . '/includes/header.php';
 
                 <div class="space-y-2">
                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide">Visitor Signature <span class="text-rose-500">*</span></label>
-                    <div class="relative bg-dark-950 border border-dark-800 rounded-xl overflow-hidden shadow-inner">
-                        <canvas id="signature-pad" class="w-full h-40 cursor-crosshair bg-slate-950 block"></canvas>
-                        <button type="button" id="clear-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-dark-800 hover:bg-dark-700 text-slate-300 text-xs font-bold rounded-lg border border-dark-700 shadow transition-all">
+                    <div class="relative bg-dark-950/45 border border-dark-800/80 rounded-xl overflow-hidden shadow-inner">
+                        <canvas id="signature-pad" class="w-full h-40 cursor-crosshair bg-transparent block"></canvas>
+                        <button type="button" id="clear-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all">
                             <i class="fa-solid fa-eraser mr-1"></i> Clear
                         </button>
                     </div>
@@ -991,10 +991,36 @@ document.addEventListener('DOMContentLoaded', () => {
         // Restore signature content synchronously if possible, fallback to image load
         if (tempCanvas) {
             ctx.drawImage(tempCanvas, 0, 0, currentWidth, currentHeight);
-            sigInput.value = canvas.toDataURL();
+            sigInput.value = window.getInvertedDataURL(canvas);
         } else if (sigInput.value) {
             const img = new Image();
-            img.onload = () => ctx.drawImage(img, 0, 0);
+            img.onload = () => {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // Invert dark/black signature to white ink for screen display
+                try {
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imgData.data;
+                    let inverted = false;
+                    for (let i = 0; i < data.length; i += 4) {
+                        if (data[i + 3] > 0) {
+                            const isDark = (data[i] + data[i+1] + data[i+2]) / 3 < 128;
+                            if (isDark) {
+                                data[i] = 255 - data[i];
+                                data[i+1] = 255 - data[i+1];
+                                data[i+2] = 255 - data[i+2];
+                                inverted = true;
+                            }
+                        }
+                    }
+                    if (inverted) {
+                        ctx.putImageData(imgData, 0, 0);
+                    }
+                } catch (e) {
+                    console.error("Error inverting signature loaded into register canvas:", e);
+                }
+            };
             img.src = sigInput.value;
         }
         
@@ -1013,6 +1039,29 @@ document.addEventListener('DOMContentLoaded', () => {
             img.onload = () => {
                 ctx.clearRect(0, 0, canvas.width, canvas.height);
                 ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                
+                // Invert dark/black signature to white ink for screen display
+                try {
+                    const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                    const data = imgData.data;
+                    let inverted = false;
+                    for (let i = 0; i < data.length; i += 4) {
+                        if (data[i + 3] > 0) {
+                            const isDark = (data[i] + data[i+1] + data[i+2]) / 3 < 128;
+                            if (isDark) {
+                                data[i] = 255 - data[i];
+                                data[i+1] = 255 - data[i+1];
+                                data[i+2] = 255 - data[i+2];
+                                inverted = true;
+                            }
+                        }
+                    }
+                    if (inverted) {
+                        ctx.putImageData(imgData, 0, 0);
+                    }
+                } catch (e) {
+                    console.error("Error inverting signature loaded from modal into register canvas:", e);
+                }
             };
             img.src = sigInput.value;
         } else {
@@ -1049,7 +1098,7 @@ document.addEventListener('DOMContentLoaded', () => {
     function stopDrawing() {
         if (drawing) {
             drawing = false;
-            sigInput.value = canvas.toDataURL();
+            sigInput.value = window.getInvertedDataURL(canvas);
         }
     }
 

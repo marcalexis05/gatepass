@@ -21,6 +21,31 @@ $system_name = get_setting('system_name', 'Concentrix Gatepass');
     </div>
 
     <script>
+    window.getInvertedDataURL = function(sourceCanvas) {
+        try {
+            const tempCanvas = document.createElement('canvas');
+            tempCanvas.width = sourceCanvas.width;
+            tempCanvas.height = sourceCanvas.height;
+            const tempCtx = tempCanvas.getContext('2d');
+            tempCtx.drawImage(sourceCanvas, 0, 0);
+            
+            const imgData = tempCtx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                if (data[i + 3] > 0) { // if pixel is drawn
+                    data[i] = 255 - data[i];     // R
+                    data[i+1] = 255 - data[i+1]; // G
+                    data[i+2] = 255 - data[i+2]; // B
+                }
+            }
+            tempCtx.putImageData(imgData, 0, 0);
+            return tempCanvas.toDataURL();
+        } catch (e) {
+            console.error("Error inverting canvas data URL:", e);
+            return sourceCanvas.toDataURL();
+        }
+    };
+
     (function() {
         const modal = document.getElementById('custom-alert-modal');
         const msgEl = document.getElementById('custom-alert-message');
@@ -116,10 +141,10 @@ $system_name = get_setting('system_name', 'Concentrix Gatepass');
             `;
             
             const canvasContainer = document.createElement('div');
-            canvasContainer.className = 'w-full h-64 border border-slate-800 rounded-2xl overflow-hidden bg-slate-950 relative mb-4';
+            canvasContainer.className = 'w-full h-64 border border-dark-800/80 rounded-2xl overflow-hidden bg-slate-950 relative mb-4';
             
             const canvas = document.createElement('canvas');
-            canvas.className = 'w-full h-full cursor-crosshair bg-slate-950';
+            canvas.className = 'w-full h-full cursor-crosshair bg-transparent';
             canvasContainer.appendChild(canvas);
             
             const ctx = canvas.getContext('2d');
@@ -181,6 +206,29 @@ $system_name = get_setting('system_name', 'Concentrix Gatepass');
                     const img = new Image();
                     img.onload = () => {
                         drawCentered(img, ctx, canvas.width, canvas.height);
+                        
+                        // Invert dark/black signature to white ink for screen display
+                        try {
+                            const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                            const data = imgData.data;
+                            let inverted = false;
+                            for (let i = 0; i < data.length; i += 4) {
+                                if (data[i + 3] > 0) {
+                                    const isDark = (data[i] + data[i+1] + data[i+2]) / 3 < 128;
+                                    if (isDark) {
+                                        data[i] = 255 - data[i];
+                                        data[i+1] = 255 - data[i+1];
+                                        data[i+2] = 255 - data[i+2];
+                                        inverted = true;
+                                    }
+                                }
+                            }
+                            if (inverted) {
+                                ctx.putImageData(imgData, 0, 0);
+                            }
+                        } catch (e) {
+                            console.error("Error inverting signature loaded into fullscreen modal:", e);
+                        }
                     };
                     img.src = hiddenInput.value;
                 }
@@ -295,7 +343,7 @@ $system_name = get_setting('system_name', 'Concentrix Gatepass');
                 
                 const hiddenInput = targetCanvas.associatedHiddenInput;
                 if (hiddenInput) {
-                    hiddenInput.value = targetCanvas.toDataURL();
+                    hiddenInput.value = window.getInvertedDataURL(trimmedCanvas);
                     hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
                 }
                 

@@ -131,6 +131,7 @@ if (true) {
                         $stmt = $pdo->prepare("UPDATE gatepasses SET status = 'Checked In', time_in = CURRENT_TIME() WHERE gatepass_no = ?");
                         $stmt->execute([$gatepass_no]);
                         $message = "Visitor has been CHECKED IN at " . date('h:i A');
+                        $trigger_email = true;
                     }
                 }
                 
@@ -407,7 +408,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="flex items-end">
                         <span class="text-slate-500 text-[9px] font-bold tracking-wider mr-2 whitespace-nowrap">Signature</span>
                         <span class="flex-grow border-b border-solid border-slate-700 pb-0.5 text-slate-355 font-mono text-[9px] tracking-widest text-emerald-450 font-bold px-2 text-center font-mono">
-                            <?php echo ($gp['status'] === 'Checked Out' && !empty($gp['admin_signature'])) ? '✓ VERIFIED' : '&nbsp;'; ?>
+                            <?php echo '&nbsp;'; ?>
                         </span>
                     </div>
                 </div>
@@ -490,9 +491,9 @@ require_once __DIR__ . '/includes/header.php';
                                     </div>
 
                                     <div class="space-y-1.5">
-                                        <label class="block text-xs font-bold text-slate-355 uppercase tracking-wide">Manager Signature <span class="text-rose-500">*</span></label>
-                                        <div class="relative bg-dark-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
-                                             <canvas id="admin-approve-signature-pad" class="w-full h-32 cursor-crosshair bg-slate-950 block"></canvas>
+                                        <label class="block text-xs font-bold text-slate-355 tracking-wide uppercase">Manager Signature <span class="text-rose-500">*</span></label>
+                                        <div class="relative bg-dark-950/45 border border-dark-800/80 rounded-xl overflow-hidden shadow-inner">
+                                             <canvas id="admin-approve-signature-pad" class="w-full h-32 cursor-crosshair bg-transparent block"></canvas>
                                              <button type="button" id="clear-admin-approve-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all">
                                                  <i class="fa-solid fa-eraser mr-1"></i> Clear
                                              </button>
@@ -525,9 +526,9 @@ require_once __DIR__ . '/includes/header.php';
                                     </div>
 
                                     <div class="space-y-1.5">
-                                        <label class="block text-xs font-bold text-slate-355 uppercase tracking-wide">Manager Signature <span class="text-rose-500">*</span></label>
-                                        <div class="relative bg-dark-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
-                                             <canvas id="admin-approve-signature-pad" class="w-full h-32 cursor-crosshair bg-slate-950 block"></canvas>
+                                        <label class="block text-xs font-bold text-slate-355 tracking-wide uppercase">Manager Signature <span class="text-rose-500">*</span></label>
+                                        <div class="relative bg-dark-950/45 border border-dark-800/80 rounded-xl overflow-hidden shadow-inner">
+                                             <canvas id="admin-approve-signature-pad" class="w-full h-32 cursor-crosshair bg-transparent block"></canvas>
                                              <button type="button" id="clear-admin-approve-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all">
                                                  <i class="fa-solid fa-eraser mr-1"></i> Clear
                                              </button>
@@ -567,8 +568,8 @@ require_once __DIR__ . '/includes/header.php';
 
                                     <div class="space-y-1.5">
                                         <label class="block text-xs font-bold text-slate-355 uppercase tracking-wide">Manager Signature <span class="text-rose-500">*</span></label>
-                                        <div class="relative bg-dark-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
-                                             <canvas id="admin-approve-signature-pad" class="w-full h-32 cursor-crosshair bg-slate-950 block"></canvas>
+                                        <div class="relative bg-dark-950/45 border border-dark-800/80 rounded-xl overflow-hidden shadow-inner">
+                                             <canvas id="admin-approve-signature-pad" class="w-full h-32 cursor-crosshair bg-transparent block"></canvas>
                                              <button type="button" id="clear-admin-approve-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all">
                                                  <i class="fa-solid fa-eraser mr-1"></i> Clear
                                              </button>
@@ -601,8 +602,8 @@ require_once __DIR__ . '/includes/header.php';
                                         <label class="block text-xs font-bold text-slate-355 uppercase tracking-wide font-display">
                                             Security Signature <span class="text-rose-500">*</span>
                                         </label>
-                                        <div class="relative bg-dark-950 border border-slate-800 rounded-xl overflow-hidden shadow-inner">
-                                             <canvas id="admin-checkout-signature-pad" class="w-full h-32 cursor-crosshair bg-slate-950 block"></canvas>
+                                         <div class="relative bg-dark-950/45 border border-dark-800/80 rounded-xl overflow-hidden shadow-inner">
+                                              <canvas id="admin-checkout-signature-pad" class="w-full h-32 cursor-crosshair bg-transparent block"></canvas>
                                              <button type="button" id="clear-admin-checkout-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all">
                                                  <i class="fa-solid fa-eraser mr-1"></i> Clear
                                              </button>
@@ -691,10 +692,36 @@ function initVerifySignatures() {
             
             if (tempCanvas) {
                 ctx.drawImage(tempCanvas, 0, 0, currentWidth, currentHeight);
-                sigInput.value = approveCanvas.toDataURL();
+                sigInput.value = window.getInvertedDataURL(approveCanvas);
             } else if (sigInput.value) {
                 const img = new Image();
-                img.onload = () => ctx.drawImage(img, 0, 0);
+                img.onload = () => {
+                    ctx.clearRect(0, 0, approveCanvas.width, approveCanvas.height);
+                    ctx.drawImage(img, 0, 0, approveCanvas.width, approveCanvas.height);
+                    
+                    // Invert dark/black signature to white ink for screen display
+                    try {
+                        const imgData = ctx.getImageData(0, 0, approveCanvas.width, approveCanvas.height);
+                        const data = imgData.data;
+                        let inverted = false;
+                        for (let i = 0; i < data.length; i += 4) {
+                            if (data[i + 3] > 0) {
+                                const isDark = (data[i] + data[i+1] + data[i+2]) / 3 < 128;
+                                if (isDark) {
+                                    data[i] = 255 - data[i];
+                                    data[i+1] = 255 - data[i+1];
+                                    data[i+2] = 255 - data[i+2];
+                                    inverted = true;
+                                }
+                            }
+                        }
+                        if (inverted) {
+                            ctx.putImageData(imgData, 0, 0);
+                        }
+                    } catch (e) {
+                        console.error("Error inverting signature loaded into approve canvas:", e);
+                    }
+                };
                 img.src = sigInput.value;
             }
             
@@ -730,7 +757,7 @@ function initVerifySignatures() {
         function stopDrawing() {
             if (drawing) {
                 drawing = false;
-                sigInput.value = approveCanvas.toDataURL();
+                sigInput.value = window.getInvertedDataURL(approveCanvas);
             }
         }
 
@@ -763,7 +790,42 @@ function initVerifySignatures() {
             sigInput.value = '';
             updateBtn();
         });
-        sigInput.addEventListener('change', updateBtn);
+        sigInput.addEventListener('change', () => {
+            if (sigInput.value) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, approveCanvas.width, approveCanvas.height);
+                    ctx.drawImage(img, 0, 0, approveCanvas.width, approveCanvas.height);
+                    
+                    // Invert dark/black signature to white ink for screen display
+                    try {
+                        const imgData = ctx.getImageData(0, 0, approveCanvas.width, approveCanvas.height);
+                        const data = imgData.data;
+                        let inverted = false;
+                        for (let i = 0; i < data.length; i += 4) {
+                            if (data[i + 3] > 0) {
+                                const isDark = (data[i] + data[i+1] + data[i+2]) / 3 < 128;
+                                if (isDark) {
+                                    data[i] = 255 - data[i];
+                                    data[i+1] = 255 - data[i+1];
+                                    data[i+2] = 255 - data[i+2];
+                                    inverted = true;
+                                }
+                            }
+                        }
+                        if (inverted) {
+                            ctx.putImageData(imgData, 0, 0);
+                        }
+                    } catch (e) {
+                        console.error("Error inverting signature loaded from modal into approve canvas:", e);
+                    }
+                };
+                img.src = sigInput.value;
+            } else {
+                ctx.clearRect(0, 0, approveCanvas.width, approveCanvas.height);
+            }
+            updateBtn();
+        });
         updateBtn();
 
         form.addEventListener('submit', (e) => {
@@ -816,10 +878,36 @@ function initVerifySignatures() {
             
             if (tempCanvas) {
                 ctx.drawImage(tempCanvas, 0, 0, currentWidth, currentHeight);
-                sigInput.value = checkoutCanvas.toDataURL();
+                sigInput.value = window.getInvertedDataURL(checkoutCanvas);
             } else if (sigInput.value) {
                 const img = new Image();
-                img.onload = () => ctx.drawImage(img, 0, 0);
+                img.onload = () => {
+                    ctx.clearRect(0, 0, checkoutCanvas.width, checkoutCanvas.height);
+                    ctx.drawImage(img, 0, 0, checkoutCanvas.width, checkoutCanvas.height);
+                    
+                    // Invert dark/black signature to white ink for screen display
+                    try {
+                        const imgData = ctx.getImageData(0, 0, checkoutCanvas.width, checkoutCanvas.height);
+                        const data = imgData.data;
+                        let inverted = false;
+                        for (let i = 0; i < data.length; i += 4) {
+                            if (data[i + 3] > 0) {
+                                const isDark = (data[i] + data[i+1] + data[i+2]) / 3 < 128;
+                                if (isDark) {
+                                    data[i] = 255 - data[i];
+                                    data[i+1] = 255 - data[i+1];
+                                    data[i+2] = 255 - data[i+2];
+                                    inverted = true;
+                                }
+                            }
+                        }
+                        if (inverted) {
+                            ctx.putImageData(imgData, 0, 0);
+                        }
+                    } catch (e) {
+                        console.error("Error inverting signature loaded into checkout canvas:", e);
+                    }
+                };
                 img.src = sigInput.value;
             }
             
@@ -855,7 +943,7 @@ function initVerifySignatures() {
         function stopDrawing() {
             if (drawing) {
                 drawing = false;
-                sigInput.value = checkoutCanvas.toDataURL();
+                sigInput.value = window.getInvertedDataURL(checkoutCanvas);
             }
         }
 
@@ -888,7 +976,42 @@ function initVerifySignatures() {
             sigInput.value = '';
             updateBtn();
         });
-        sigInput.addEventListener('change', updateBtn);
+        sigInput.addEventListener('change', () => {
+            if (sigInput.value) {
+                const img = new Image();
+                img.onload = () => {
+                    ctx.clearRect(0, 0, checkoutCanvas.width, checkoutCanvas.height);
+                    ctx.drawImage(img, 0, 0, checkoutCanvas.width, checkoutCanvas.height);
+                    
+                    // Invert dark/black signature to white ink for screen display
+                    try {
+                        const imgData = ctx.getImageData(0, 0, checkoutCanvas.width, checkoutCanvas.height);
+                        const data = imgData.data;
+                        let inverted = false;
+                        for (let i = 0; i < data.length; i += 4) {
+                            if (data[i + 3] > 0) {
+                                const isDark = (data[i] + data[i+1] + data[i+2]) / 3 < 128;
+                                if (isDark) {
+                                    data[i] = 255 - data[i];
+                                    data[i+1] = 255 - data[i+1];
+                                    data[i+2] = 255 - data[i+2];
+                                    inverted = true;
+                                }
+                            }
+                        }
+                        if (inverted) {
+                            ctx.putImageData(imgData, 0, 0);
+                        }
+                    } catch (e) {
+                        console.error("Error inverting signature loaded from modal into checkout canvas:", e);
+                    }
+                };
+                img.src = sigInput.value;
+            } else {
+                ctx.clearRect(0, 0, checkoutCanvas.width, checkoutCanvas.height);
+            }
+            updateBtn();
+        });
         updateBtn();
 
         form.addEventListener('submit', (e) => {
@@ -927,6 +1050,10 @@ document.addEventListener('DOMContentLoaded', () => {
 </div>
 
 <style>
+img.signature-img {
+    background: transparent !important;
+    filter: invert(1) !important;
+}
 /* ===================================================
    PRINT: Force single A4 page — verify.php
    =================================================== */
@@ -1106,8 +1233,8 @@ document.addEventListener('DOMContentLoaded', () => {
     .border-t { border-top: 1px solid #000 !important; }
     .border-r { border-right: 1px solid #000 !important; }
     .border { border: 1px solid #000 !important; }
-    /* 15. Invert signature drawings */
-    img.signature-img { filter: invert(1) !important; }
+    /* 15. Invert signature drawings during print */
+    img.signature-img { filter: none !important; }
     /* 16. Instructions override */
     #gatepass-card .instructions-section * {
         line-height: 1.5 !important;
