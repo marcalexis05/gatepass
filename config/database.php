@@ -1,4 +1,7 @@
 <?php
+// ── Security hardening — must be first ──────────────────────
+require_once __DIR__ . '/../includes/security.php';
+
 // Helper to parse .env file
 function load_env() {
     $env_file = __DIR__ . '/../.env';

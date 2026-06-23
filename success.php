@@ -228,27 +228,27 @@ require_once __DIR__ . '/includes/header.php';
                         <?php if (!empty($gp_materials)): ?>
                             <?php foreach ($gp_materials as $index => $mat): ?>
                                 <tr class="bg-slate-900/10">
-                                    <td class="p-3 border-r border-b border-slate-800 font-mono text-center text-slate-350 print-border-black align-top">
+                                    <td class="p-3 border-r border-slate-800 font-mono text-center text-slate-350 print-border-black align-top">
                                         <div style="min-height: <?php echo count($gp_materials) === 1 ? '150px' : '40px'; ?>;">
                                             <?php echo htmlspecialchars($mat['material_serial'] ?: 'N/A'); ?>
                                         </div>
                                     </td>
-                                    <td class="p-3 border-r border-b border-slate-800 font-semibold text-slate-200 print-border-black align-top">
+                                    <td class="p-3 border-r border-slate-800 font-semibold text-slate-200 print-border-black align-top">
                                         <div style="min-height: <?php echo count($gp_materials) === 1 ? '150px' : '40px'; ?>;">
                                             <?php echo htmlspecialchars($mat['material_desc'] ?: 'N/A'); ?>
                                         </div>
                                     </td>
-                                    <td class="p-3 border-r border-b border-slate-800 text-center text-slate-200 print-border-black align-top">
+                                    <td class="p-3 border-r border-slate-800 text-center text-slate-200 print-border-black align-top">
                                         <div style="min-height: <?php echo count($gp_materials) === 1 ? '150px' : '40px'; ?>;">
                                             <?php echo htmlspecialchars($mat['material_brand'] ?: 'N/A'); ?>
                                         </div>
                                     </td>
-                                    <td class="p-3 border-r border-b border-slate-800 text-center font-bold print-border-black align-top">
+                                    <td class="p-3 border-r border-slate-800 text-center font-bold print-border-black align-top">
                                         <div style="min-height: <?php echo count($gp_materials) === 1 ? '150px' : '40px'; ?>;">
                                             <?php echo htmlspecialchars($mat['material_qty'] ?: '1'); ?>
                                         </div>
                                     </td>
-                                    <td class="p-3 border-b border-slate-800/50 text-slate-400 italic align-top">
+                                    <td class="p-3 text-slate-400 italic align-top">
                                         <div style="min-height: <?php echo count($gp_materials) === 1 ? '150px' : '40px'; ?>;">
                                             <?php echo htmlspecialchars($mat['purpose'] ?: '-'); ?>
                                         </div>
@@ -359,7 +359,7 @@ require_once __DIR__ . '/includes/header.php';
             </div>
 
             <!-- Instructions Section -->
-            <div class="instructions-section pt-6 text-[10px] text-slate-500 space-y-6 border-t border-slate-800/60 print-border-black">
+            <div class="instructions-section pt-6 text-[11.5px] text-slate-500 space-y-6 border-t border-slate-800/60 print-border-black">
                 <div class="text-center font-bold tracking-wider text-slate-400 uppercase underline mb-2">General Instructions</div>
                 <div class="text-left space-y-4">
                     <div>
@@ -453,11 +453,11 @@ require_once __DIR__ . '/includes/header.php';
 
     <!-- Print & Navigation Actions -->
     <div class="flex flex-col sm:flex-row gap-3 justify-center mb-10 no-print">
-        <button onclick="window.print()"
-                class="px-6 py-3 bg-slate-800 hover:bg-slate-700 active:scale-95 transition-all text-white font-bold text-sm rounded-xl border border-slate-700/80 flex items-center justify-center space-x-2 cursor-pointer">
+        <a href="download_pdf.php?code=<?php echo urlencode($gatepass_no); ?>" target="_blank"
+           class="px-6 py-3 bg-slate-800 hover:bg-slate-700 active:scale-95 transition-all text-white font-bold text-sm rounded-xl border border-slate-700/80 flex items-center justify-center space-x-2 cursor-pointer text-center">
             <i class="fa-solid fa-print"></i>
             <span>Print or Save PDF</span>
-        </button>
+        </a>
         <a href="index.php"
            class="px-6 py-3 bg-indigo-600 hover:bg-indigo-500 active:scale-95 transition-all text-white font-bold text-sm rounded-xl text-center shadow-lg shadow-indigo-600/10 flex items-center justify-center space-x-2">
             <i class="fa-solid fa-house"></i>
@@ -667,6 +667,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 modal.offsetHeight; // force reflow
                 modal.classList.add('show');
                 document.getElementById('it_incharge_password_input').focus();
+            }
+        });
+    }
+
+    // Listen for Enter key press on password input to verify & sign
+    const passwordInput = document.getElementById('it_incharge_password_input');
+    if (passwordInput) {
+        passwordInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                verifyPasswordAndSubmit();
             }
         });
     }
@@ -892,6 +903,7 @@ img.signature-img {
     img.signature-img { filter: none !important; }
     /* 16. Instructions override */
     #gatepass-card .instructions-section * {
+        font-size: 11.5px !important;
         line-height: 1.5 !important;
     }
     #gatepass-card .instructions-section li {

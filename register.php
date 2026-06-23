@@ -8,16 +8,12 @@ $success = false;
 // Default values
 $visitor_name = '';
 $visitor_email = '';
-$visitor_phone = 'N/A';
 $eid = '';
-$company_org = 'N/A';
-$vehicle_no = 'N/A';
 $purpose = '';
 $material_desc = '';
 $material_brand = '';
 $material_serial = '';
 $material_qty = 1;
-$host_name = 'N/A';
 $department = '';
 $visit_date = date('Y-m-d'); // Default to today
 $visitor_signature = '';
@@ -31,7 +27,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $visitor_name = trim($_POST['visitor_name'] ?? '');
     $visitor_email = trim($_POST['visitor_email'] ?? '');
     $eid = trim($_POST['eid'] ?? '');
-    $company_org = 'N/A';
     $department = trim($_POST['department'] ?? '');
     if ($department === 'Others') {
         $department = trim($_POST['custom_department'] ?? '');
@@ -170,24 +165,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $first_item = $items[0];
 
             // Insert into Database (automatically Checked In with current time)
-            $insert_sql = "INSERT INTO gatepasses (gatepass_no, visitor_name, visitor_email, visitor_phone, eid, company_org, vehicle_no, purpose, material_desc, material_brand, material_serial, material_qty, host_name, department, visit_date, status, time_in, visitor_signature)
-                           VALUES (:gatepass_no, :visitor_name, :visitor_email, :visitor_phone, :eid, :company_org, :vehicle_no, :purpose, :material_desc, :material_brand, :material_serial, :material_qty, :host_name, :department, :visit_date, 'Checked In', CURRENT_TIME(), :visitor_signature)";
+            $insert_sql = "INSERT INTO gatepasses (gatepass_no, visitor_name, visitor_email, eid, purpose, material_desc, material_brand, material_serial, material_qty, department, visit_date, status, time_in, visitor_signature)
+                           VALUES (:gatepass_no, :visitor_name, :visitor_email, :eid, :purpose, :material_desc, :material_brand, :material_serial, :material_qty, :department, :visit_date, 'Checked In', CURRENT_TIME(), :visitor_signature)";
             
             $stmt = $pdo->prepare($insert_sql);
             $stmt->execute([
                 'gatepass_no' => $gatepass_no,
                 'visitor_name' => $visitor_name,
                 'visitor_email' => $visitor_email,
-                'visitor_phone' => $visitor_phone,
                 'eid' => $eid ?: null,
-                'company_org' => $company_org ?: null,
-                'vehicle_no' => $vehicle_no ?: null,
                 'purpose' => $first_item['purpose'],
                 'material_desc' => $first_item['material_desc'] ?: null,
                 'material_brand' => $first_item['material_brand'] ?: null,
                 'material_serial' => $first_item['material_serial'] ?: null,
                 'material_qty' => $first_item['material_qty'] ?: 1,
-                'host_name' => $host_name,
                 'department' => $department,
                 'visit_date' => $visit_date,
                 'visitor_signature' => $visitor_signature ?: null

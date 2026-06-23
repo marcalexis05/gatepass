@@ -23,23 +23,25 @@ $gatepass_data = $stmt->fetch();
 if ($gatepass_data) {
     $admin_email = get_setting('admin_email', 'admin@example.com');
     
-    // Generate PDF if status is Checked In or Checked Out
+    // Generate PDF for Checked Out (used for visitor, admin, and security)
     $pdf_path = null;
-    if ($gatepass_data['status'] === 'Checked In' || $gatepass_data['status'] === 'Checked Out') {
+    if ($gatepass_data['status'] === 'Checked Out') {
         $pdf_path = generate_gatepass_pdf($gatepass_data);
     }
-    
+
     // Attempt to send to visitor
     send_gatepass_email($gatepass_data, $gatepass_data['visitor_email'], $gatepass_data['visitor_name'], 'visitor', $pdf_path);
     // Attempt to send to admin
     send_gatepass_email($gatepass_data, $admin_email, 'Administrator', 'admin', $pdf_path);
-    
-    // Send notification to badilla.princearvy@concentrix.com if status is Checked In or Checked Out
+
+    // Send notification to Security Team (reception) on both Check-In and Check-Out
+    // Check-In: notification email only (no PDF)
+    // Check-Out: notification email with PDF attachment
     if ($gatepass_data['status'] === 'Checked In' || $gatepass_data['status'] === 'Checked Out') {
-        send_gatepass_email($gatepass_data, 'badilla.princearvy@concentrix.com', 'Prince Arvy Badilla', 'admin', $pdf_path);
+        send_gatepass_email($gatepass_data, 'phupd.reception@concentrix.com', 'Security Team', 'security', $pdf_path);
     }
-    
-    // Clean up temporary PDF file if it exists
+
+    // Clean up the shared Checked Out PDF if it exists
     if ($pdf_path && file_exists($pdf_path)) {
         unlink($pdf_path);
     }

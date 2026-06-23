@@ -1,0 +1,101 @@
+# ============================================================
+#  Concentrix GatePass — Apache Security Rules
+# ============================================================
+
+# ─── Force UTF-8 everywhere ─────────────────────────────────
+AddDefaultCharset UTF-8
+
+# ─── Remove Apache server signature ─────────────────────────
+ServerSignature Off
+
+# ─── Disable directory listings ─────────────────────────────
+Options -Indexes -ExecCGI
+Options +FollowSymLinks
+
+# ─── Block access to sensitive config & backup files ────────
+<FilesMatch "\.(env|sql|log|bak|swp|git|htpasswd|lock|txt|bat|vbs|ps1|md|json)$">
+    Require all denied
+</FilesMatch>
+
+# ─── Block access to debug / test scripts ───────────────────
+<FilesMatch "^(test_|scratch_|debug_|recover_).*\.php$">
+    Require all denied
+</FilesMatch>
+
+# ─── Block direct access to include/config dirs ─────────────
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Block includes/ directory direct access
+    RewriteRule ^includes/ - [F,L]
+
+    # Block config/ directory direct access
+    RewriteRule ^config/ - [F,L]
+
+    # Block libs/ directory direct access
+    RewriteRule ^libs/ - [F,L]
+
+    # Block .git directory
+    RewriteRule ^\.git/ - [F,L]
+</IfModule>
+
+# ─── Block common SQL injection probes in query strings ─────
+<IfModule mod_rewrite.c>
+    RewriteCond %{QUERY_STRING} (union|select|insert|update|delete|drop|truncate|alter|create|exec|execute|benchmark|sleep|load_file|outfile|dumpfile) [NC]
+    RewriteRule .* - [F,L]
+
+    RewriteCond %{QUERY_STRING} (<script|javascript:|vbscript:|onload=|onerror=|onclick=) [NC]
+    RewriteRule .* - [F,L]
+
+    RewriteCond %{QUERY_STRING} (\.\./|\.\.\%2F|\.\.%5C) [NC]
+    RewriteRule .* - [F,L]
+
+    RewriteCond %{QUERY_STRING} (base64_encode|base64_decode|eval\(|system\(|passthru\(|shell_exec\() [NC]
+    RewriteRule .* - [F,L]
+
+    RewriteCond %{QUERY_STRING} (%00|%0d|%0a|%27|%22|%3c|%3e) [NC]
+    RewriteRule .* - [F,L]
+</IfModule>
+
+# ─── Block bad bots & scanners ──────────────────────────────
+<IfModule mod_setenvif.c>
+    SetEnvIfNoCase User-Agent "sqlmap"        bad_bot
+    SetEnvIfNoCase User-Agent "nikto"         bad_bot
+    SetEnvIfNoCase User-Agent "nessus"        bad_bot
+    SetEnvIfNoCase User-Agent "havij"         bad_bot
+    SetEnvIfNoCase User-Agent "acunetix"      bad_bot
+    SetEnvIfNoCase User-Agent "masscan"       bad_bot
+    SetEnvIfNoCase User-Agent "nmap"          bad_bot
+    SetEnvIfNoCase User-Agent "zgrab"         bad_bot
+    SetEnvIfNoCase User-Agent "dirbuster"     bad_bot
+    SetEnvIfNoCase User-Agent "gobuster"      bad_bot
+    SetEnvIfNoCase User-Agent "wfuzz"         bad_bot
+    SetEnvIfNoCase User-Agent "burpsuite"     bad_bot
+    SetEnvIfNoCase User-Agent "w3af"          bad_bot
+    SetEnvIfNoCase User-Agent "paros"         bad_bot
+    <RequireAll>
+        Require all granted
+        Require not env bad_bot
+    </RequireAll>
+</IfModule>
+
+# ─── Block access to ADMIN LOGIN.txt ────────────────────────
+<Files "ADMIN LOGIN.txt">
+    Require all denied
+</Files>
+
+# ─── Clickjacking protection via header ─────────────────────
+<IfModule mod_headers.c>
+    Header always set X-Frame-Options "SAMEORIGIN"
+    Header always set X-Content-Type-Options "nosniff"
+    Header always set X-XSS-Protection "1; mode=block"
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    Header always unset X-Powered-By
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+</IfModule>
+
+# ─── Disable HTTP TRACE method (prevents cross-site tracing) ─
+<IfModule mod_rewrite.c>
+    RewriteCond %{REQUEST_METHOD} ^TRACE
+    RewriteRule .* - [F,L]
+</IfModule>

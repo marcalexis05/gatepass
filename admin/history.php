@@ -91,7 +91,7 @@ if (!empty($search)) {
     $sub_clauses = [];
     $word_idx = 0;
     foreach ($words as $word) {
-        $cols = ['visitor_name', 'gatepass_no', 'visitor_email', 'visitor_phone', 'eid', 'company_org', 'purpose', 'host_name', 'department', 'material_desc', 'material_brand', 'material_serial'];
+        $cols = ['visitor_name', 'gatepass_no', 'visitor_email', 'eid', 'purpose', 'department', 'material_desc', 'material_brand', 'material_serial'];
         $clauses = [];
         $i = 0;
         foreach ($cols as $col) {
@@ -132,10 +132,26 @@ if (!empty($visit_date)) {
 
 $where_sql = implode(' AND ', $where_clauses);
 
+// Build dynamic sort order prioritizing filtered columns to organize results cleanly
+$order_parts = [];
+if (!empty($status_filter)) {
+    $order_parts[] = "status ASC";
+}
+if (!empty($dept_filter)) {
+    $order_parts[] = "department ASC";
+}
+if (!empty($visit_date)) {
+    $order_parts[] = "visit_date DESC";
+}
+// Default fallback sorting
+$order_parts[] = "visit_date DESC";
+$order_parts[] = "created_at DESC";
+$order_sql = implode(', ', array_unique($order_parts));
+
 // CSV / Excel Export Handler
 if (($_GET['export'] ?? '') === 'csv') {
     try {
-        $query_sql = "SELECT * FROM gatepasses WHERE $where_sql ORDER BY visit_date DESC, created_at DESC";
+        $query_sql = "SELECT * FROM gatepasses WHERE $where_sql ORDER BY $order_sql";
         $stmt = $pdo->prepare($query_sql);
         $stmt->execute($params);
         $records = $stmt->fetchAll();
@@ -165,10 +181,7 @@ if (($_GET['export'] ?? '') === 'csv') {
             'Gatepass No',
             'Visitor Name',
             'Visitor Email',
-            'Visitor Phone',
             'Employee ID',
-            'Company/Org',
-            'Host Name',
             'Program/Department',
             'Visit Date',
             'Check-In Time',
@@ -178,8 +191,7 @@ if (($_GET['export'] ?? '') === 'csv') {
             'Asset Description',
             'Asset Brand',
             'Asset Serial / S.No.',
-            'Asset Quantity',
-            'Created At'
+            'Asset Quantity'
         ]);
 
         foreach ($records as $gp) {
@@ -202,10 +214,7 @@ if (($_GET['export'] ?? '') === 'csv') {
                         $gp['gatepass_no'],
                         $gp['visitor_name'],
                         $gp['visitor_email'],
-                        $gp['visitor_phone'],
                         $gp['eid'],
-                        $gp['company_org'],
-                        $gp['host_name'],
                         $gp['department'],
                         $gp['visit_date'],
                         $gp['time_in'] ? date('h:i A', strtotime($gp['time_in'])) : 'N/A',
@@ -215,8 +224,7 @@ if (($_GET['export'] ?? '') === 'csv') {
                         $m['material_desc'] ?: 'N/A',
                         $m['material_brand'] ?: 'N/A',
                         $m['material_serial'] ?: 'N/A',
-                        $m['material_qty'] ?: 0,
-                        $gp['created_at']
+                        $m['material_qty'] ?: 0
                     ]);
                 }
             } else {
@@ -224,10 +232,7 @@ if (($_GET['export'] ?? '') === 'csv') {
                     $gp['gatepass_no'],
                     $gp['visitor_name'],
                     $gp['visitor_email'],
-                    $gp['visitor_phone'],
                     $gp['eid'],
-                    $gp['company_org'],
-                    $gp['host_name'],
                     $gp['department'],
                     $gp['visit_date'],
                     $gp['time_in'] ? date('h:i A', strtotime($gp['time_in'])) : 'N/A',
@@ -237,8 +242,7 @@ if (($_GET['export'] ?? '') === 'csv') {
                     'N/A',
                     'N/A',
                     'N/A',
-                    0,
-                    $gp['created_at']
+                    0
                 ]);
             }
         }
@@ -265,7 +269,7 @@ try {
     $total_pages = ceil($total_records / $limit);
 
     // Fetch paginated history records
-    $query_sql = "SELECT * FROM gatepasses WHERE $where_sql ORDER BY visit_date DESC, created_at DESC LIMIT $limit OFFSET $offset";
+    $query_sql = "SELECT * FROM gatepasses WHERE $where_sql ORDER BY $order_sql LIMIT $limit OFFSET $offset";
     $stmt = $pdo->prepare($query_sql);
     $stmt->execute($params);
     $history_records = $stmt->fetchAll();
@@ -322,7 +326,7 @@ $status_configs = [
             <?php endif; ?>
             <a href="?<?php echo http_build_query(array_merge($_GET, ['export' => 'csv'])); ?>" 
                class="px-4 py-2.5 rounded-xl text-sm font-semibold bg-brand-teal hover:bg-[#1fd4be] text-dark-900 shadow-lg shadow-brand-teal/10 hover:shadow-brand-teal/20 transition-all flex items-center gap-2">
-                <i class="fa-solid fa-file-excel"></i> Export Excel / CSV
+                <i class="fa-solid fa-file-excel"></i> Export Excel / CSV or Google Sheets
             </a>
         </div>
     </div>

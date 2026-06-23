@@ -3,7 +3,15 @@ require_once __DIR__ . '/../includes/auth.php';
 require_once __DIR__ . '/../config/database.php';
 
 $error = '';
-$redirect = trim($_GET['redirect'] ?? '');
+// Only allow safe relative paths for redirect — block open-redirect attempts
+$redirect = '';
+if (!empty($_GET['redirect'])) {
+    $raw = trim($_GET['redirect']);
+    // Allow only alphanumeric paths + safe URL chars, no protocol/host
+    if (preg_match('/^[a-zA-Z0-9\/_\-\.?=&%]+$/', $raw) && !preg_match('/^(\/\/|https?:|javascript:|data:)/i', $raw)) {
+        $redirect = $raw;
+    }
+}
 
 if (is_logged_in()) {
     header("Location: dashboard.php");
@@ -11,7 +19,10 @@ if (is_logged_in()) {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $username = trim($_POST['username'] ?? '');
+    // Rate limit: max 15 login attempts per 5 minutes per session/IP
+    check_rate_limit('login');
+
+    $username = gp_clean($_POST['username'] ?? '', 100);
     $password = trim($_POST['password'] ?? '');
 
     if (empty($username) || empty($password)) {
@@ -23,23 +34,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $user = $stmt->fetch();
 
             if ($user && password_verify($password, $user['password'])) {
-                // Set session
-                $_SESSION['user_id'] = $user['id'];
-                $_SESSION['username'] = $user['username'];
+                // Harden session on successful login
+                session_regenerate_id(true);
+                $_SESSION['user_id']   = $user['id'];
+                $_SESSION['username']  = $user['username'];
                 $_SESSION['full_name'] = $user['full_name'];
+                $_SESSION['_login_at'] = time();
 
-                // Redirect to dynamic destination or dashboard
+                // Safe redirect — fallback to dashboard if redirect is empty/invalid
                 if (!empty($redirect)) {
-                    header("Location: " . $redirect);
+                    gp_safe_redirect($redirect, 'dashboard.php');
                 } else {
                     header("Location: dashboard.php");
+                    exit;
                 }
-                exit;
             } else {
+                // Generic error — never reveal which field is wrong
                 $error = "Invalid username or password.";
             }
         } catch (PDOException $e) {
-            $error = "Database error: " . $e->getMessage();
+            // Log the real error, show a generic message to the user
+            error_log("Login DB Error: " . $e->getMessage());
+            $error = "A system error occurred. Please try again later.";
         }
     }
 }

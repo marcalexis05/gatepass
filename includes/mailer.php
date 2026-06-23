@@ -75,49 +75,17 @@ function send_gatepass_email($gatepass, $recipient_email, $recipient_name, $role
         $admin_sig_cid = '';
         $security_sig_cid = '';
         
-        // Embed Concentrix logo
-        $logo_path = __DIR__ . '/../assets/logo-concentrix.png';
-        if (file_exists($logo_path)) {
-            $mail->addEmbeddedImage($logo_path, 'logo_concentrix', 'logo-concentrix.png');
-        }
-        
-        // Embed signature images
-        if ($gatepass['status'] === 'Checked In' || $gatepass['status'] === 'Checked Out') {
-            if (!empty($gatepass['visitor_signature'])) {
-                $visitor_sig_file = tempnam(sys_get_temp_dir(), 'esig_') . '.png';
-                $data = explode(',', $gatepass['visitor_signature']);
-                $img_data = base64_decode(end($data));
-                file_put_contents($visitor_sig_file, $img_data);
-                
-                $mail->addEmbeddedImage($visitor_sig_file, 'visitor_sig', 'visitor_sig.png');
-                $visitor_sig_cid = 'cid:visitor_sig';
-                $temp_sig_files[] = $visitor_sig_file;
-            }
-            if (!empty($gatepass['admin_signature'])) {
-                $admin_sig_file = tempnam(sys_get_temp_dir(), 'esig_') . '.png';
-                $data = explode(',', $gatepass['admin_signature']);
-                $img_data = base64_decode(end($data));
-                file_put_contents($admin_sig_file, $img_data);
-                
-                $mail->addEmbeddedImage($admin_sig_file, 'admin_sig', 'admin_sig.png');
-                $admin_sig_cid = 'cid:admin_sig';
-                $temp_sig_files[] = $admin_sig_file;
-            }
-            if (!empty($gatepass['security_signature'])) {
-                $security_sig_file = tempnam(sys_get_temp_dir(), 'esig_') . '.png';
-                $data = explode(',', $gatepass['security_signature']);
-                $img_data = base64_decode(end($data));
-                file_put_contents($security_sig_file, $img_data);
-                
-                $mail->addEmbeddedImage($security_sig_file, 'security_sig', 'security_sig.png');
-                $security_sig_cid = 'cid:security_sig';
-                $temp_sig_files[] = $security_sig_file;
-            }
-        }
+        // No signature embedding needed as the email body uses a clean template (signatures are in the attached PDF)
         
         // Subject and dynamic body styling based on role and status
         if ($gatepass['status'] === 'Checked In' || $gatepass['status'] === 'Checked Out') {
-            if ($role === 'admin') {
+            if ($role === 'security') {
+                if ($gatepass['status'] === 'Checked In') {
+                    $mail->Subject = "[Security Alert] Visitor Check-In: " . $gatepass['visitor_name'] . " — GP# " . $gatepass['gatepass_no'];
+                } else {
+                    $mail->Subject = "[Security Alert] Visitor Check-Out: " . $gatepass['visitor_name'] . " — GP# " . $gatepass['gatepass_no'];
+                }
+            } elseif ($role === 'admin') {
                 if ($gatepass['status'] === 'Checked In') {
                     $mail->Subject = "Visitor Checked In: " . $gatepass['gatepass_no'] . " - " . $gatepass['visitor_name'];
                 } else {
@@ -130,7 +98,12 @@ function send_gatepass_email($gatepass, $recipient_email, $recipient_name, $role
                     $mail->Subject = "Check-Out Confirmed: " . $gatepass['gatepass_no'];
                 }
             }
-            $body = get_concentrix_gatepass_html_template($gatepass, $system_name, $visitor_sig_cid, $admin_sig_cid, $security_sig_cid);
+            
+            if ($gatepass['status'] === 'Checked In') {
+                $body = get_checkin_confirmed_email_template($gatepass, $system_name, $role);
+            } else {
+                $body = get_checkout_confirmed_email_template($gatepass, $system_name, $role);
+            }
         } else {
             if ($role === 'admin') {
                 $mail->Subject = "New Gatepass Request: " . $gatepass['gatepass_no'] . " - " . $gatepass['visitor_name'];
@@ -172,13 +145,28 @@ function get_admin_email_template($gp, $sys_name) {
     $dashboard_url = "http://" . $server_ip . "/gatepass/admin/dashboard.php";
     
     return "
-    <div style='font-family: Arial, sans-serif; background-color: #f3f4f6; padding: 30px; margin: 0;'>
-        <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-top: 6px solid #4f46e5;'>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .email-body {
+                padding: 15px 0 !important;
+            }
+            .content-div {
+                padding: 20px !important;
+            }
+        }
+    </style>
+    <div class='email-body' style='font-family: Arial, sans-serif; background-color: #f3f4f6; padding: 30px 0; margin: 0;'>
+        <!--[if mso]>
+        <table align='center' border='0' cellpadding='0' cellspacing='0' width='600' style='width: 600px;'>
+        <tr>
+        <td>
+        <![endif]-->
+        <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-top: 6px solid #4f46e5; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;'>
             <div style='padding: 25px; text-align: center; background-color: #4f46e5; color: #ffffff;'>
                 <h1 style='margin: 0; font-size: 24px; font-weight: bold;'>$sys_name Notification</h1>
                 <p style='margin: 5px 0 0 0; opacity: 0.9;'>New Visitor Gatepass Request Submitted</p>
             </div>
-            <div style='padding: 30px;'>
+            <div class='content-div' style='padding: 30px;'>
                 <p style='font-size: 16px; color: #374151; margin-top: 0;'>Hello Admin,</p>
                 <p style='font-size: 15px; color: #4b5563;'>A new visitor has submitted a gatepass request. Please review the details below:</p>
                 
@@ -223,6 +211,11 @@ function get_admin_email_template($gp, $sys_name) {
                 This is an automated message from $sys_name. Please do not reply directly to this email.
             </div>
         </div>
+        <!--[if mso]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
     </div>";
 }
 
@@ -232,13 +225,28 @@ function get_visitor_email_template($gp, $sys_name) {
     $pass_url = "http://" . $server_ip . "/gatepass/success.php?code=" . $gp['gatepass_no'];
     
     return "
-    <div style='font-family: Arial, sans-serif; background-color: #f3f4f6; padding: 30px; margin: 0;'>
-        <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-top: 6px solid #10b981;'>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .email-body {
+                padding: 15px 0 !important;
+            }
+            .content-div {
+                padding: 20px !important;
+            }
+        }
+    </style>
+    <div class='email-body' style='font-family: Arial, sans-serif; background-color: #f3f4f6; padding: 30px 0; margin: 0;'>
+        <!--[if mso]>
+        <table align='center' border='0' cellpadding='0' cellspacing='0' width='600' style='width: 600px;'>
+        <tr>
+        <td>
+        <![endif]-->
+        <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-top: 6px solid #10b981; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;'>
             <div style='padding: 25px; text-align: center; background-color: #10b981; color: #ffffff;'>
                 <h1 style='margin: 0; font-size: 24px; font-weight: bold;'>$sys_name</h1>
                 <p style='margin: 5px 0 0 0; opacity: 0.9;'>Your Visitor Gatepass Request is Received!</p>
             </div>
-            <div style='padding: 30px;'>
+            <div class='content-div' style='padding: 30px;'>
                 <p style='font-size: 16px; color: #374151; margin-top: 0;'>Hello {$gp['visitor_name']},</p>
                 <p style='font-size: 15px; color: #4b5563;'>Thank you for registering. Your request has been registered and is currently pending verification. Here is your digital gatepass summary:</p>
                 
@@ -275,6 +283,11 @@ function get_visitor_email_template($gp, $sys_name) {
                 This is an automated message. Please contact administrative office if you have any questions.
             </div>
         </div>
+        <!--[if mso]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
     </div>";
 }
 
@@ -285,13 +298,28 @@ function get_admin_checkout_email_template($gp, $sys_name) {
     $checkout_time = $gp['time_out'] ? date('h:i A', strtotime($gp['time_out'])) : date('h:i A');
     
     return "
-    <div style='font-family: Arial, sans-serif; background-color: #f3f4f6; padding: 30px; margin: 0;'>
-        <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-top: 6px solid #4f46e5;'>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .email-body {
+                padding: 15px 0 !important;
+            }
+            .content-div {
+                padding: 20px !important;
+            }
+        }
+    </style>
+    <div class='email-body' style='font-family: Arial, sans-serif; background-color: #f3f4f6; padding: 30px 0; margin: 0;'>
+        <!--[if mso]>
+        <table align='center' border='0' cellpadding='0' cellspacing='0' width='600' style='width: 600px;'>
+        <tr>
+        <td>
+        <![endif]-->
+        <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-top: 6px solid #4f46e5; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;'>
             <div style='padding: 25px; text-align: center; background-color: #4f46e5; color: #ffffff;'>
                 <h1 style='margin: 0; font-size: 24px; font-weight: bold;'>$sys_name Notification</h1>
                 <p style='margin: 5px 0 0 0; opacity: 0.9;'>Visitor Checked Out Successfully</p>
             </div>
-            <div style='padding: 30px;'>
+            <div class='content-div' style='padding: 30px;'>
                 <p style='font-size: 16px; color: #374151; margin-top: 0;'>Hello Admin,</p>
                 <p style='font-size: 15px; color: #4b5563;'>The following visitor has checked out of the premises:</p>
                 
@@ -328,6 +356,11 @@ function get_admin_checkout_email_template($gp, $sys_name) {
                 This is an automated message from $sys_name. Please do not reply directly to this email.
             </div>
         </div>
+        <!--[if mso]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
     </div>";
 }
 
@@ -336,13 +369,28 @@ function get_visitor_checkout_email_template($gp, $sys_name) {
     $checkout_time = $gp['time_out'] ? date('h:i A', strtotime($gp['time_out'])) : date('h:i A');
     
     return "
-    <div style='font-family: Arial, sans-serif; background-color: #f3f4f6; padding: 30px; margin: 0;'>
-        <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-top: 6px solid #ef4444;'>
+    <style>
+        @media only screen and (max-width: 600px) {
+            .email-body {
+                padding: 15px 0 !important;
+            }
+            .content-div {
+                padding: 20px !important;
+            }
+        }
+    </style>
+    <div class='email-body' style='font-family: Arial, sans-serif; background-color: #f3f4f6; padding: 30px 0; margin: 0;'>
+        <!--[if mso]>
+        <table align='center' border='0' cellpadding='0' cellspacing='0' width='600' style='width: 600px;'>
+        <tr>
+        <td>
+        <![endif]-->
+        <div style='max-width: 600px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); border-top: 6px solid #ef4444; border-left: 1px solid #e5e7eb; border-right: 1px solid #e5e7eb; border-bottom: 1px solid #e5e7eb;'>
             <div style='padding: 25px; text-align: center; background-color: #ef4444; color: #ffffff;'>
                 <h1 style='margin: 0; font-size: 24px; font-weight: bold;'>$sys_name</h1>
                 <p style='margin: 5px 0 0 0; opacity: 0.9;'>Check-Out Confirmed</p>
             </div>
-            <div style='padding: 30px;'>
+            <div class='content-div' style='padding: 30px;'>
                 <p style='font-size: 16px; color: #374151; margin-top: 0;'>Hello {$gp['visitor_name']},</p>
                 <p style='font-size: 15px; color: #4b5563;'>This email confirms that you have successfully checked out of the premises. Thank you for your visit!</p>
                 
@@ -375,6 +423,11 @@ function get_visitor_checkout_email_template($gp, $sys_name) {
                 This is an automated message. Please do not reply directly to this email.
             </div>
         </div>
+        <!--[if mso]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
     </div>";
 }
 
@@ -511,7 +564,7 @@ function get_concentrix_gatepass_html_template($gp, $sys_name, $visitor_sig_cid,
     <style>
         @media only screen and (max-width: 600px) {
             .email-body {
-                padding: 10px !important;
+                padding: 10px 0 !important;
             }
             .email-container {
                 padding: 12px !important;
@@ -556,14 +609,19 @@ function get_concentrix_gatepass_html_template($gp, $sys_name, $visitor_sig_cid,
             }
         }
     </style>
-    <div class=\"email-body\" style=\"font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f3f4f6; padding: 20px; color: #000000; margin: 0;\">
+    <div class=\"email-body\" style=\"font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; background-color: #f3f4f6; padding: 20px 0; color: #000000; margin: 0;\">
+        <!--[if mso]>
+        <table align=\"center\" border=\"0\" cellpadding=\"0\" cellspacing=\"0\" width=\"650\" style=\"width: 650px;\">
+        <tr>
+        <td>
+        <![endif]-->
         <div class=\"email-container\" style=\"max-width: 650px; margin: 0 auto; width: 100%; background-color: #ffffff; border: 3px double #0f172a; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); box-sizing: border-box;\">
             
             <!-- Header -->
             <table class=\"header-table\" style=\"width: 100%; border-collapse: collapse; margin-bottom: 15px;\">
                 <tr>
                     <td style=\"width: 50%; text-align: left; vertical-align: middle; padding-bottom: 10px;\">
-                        <img src=\"cid:logo_concentrix\" alt=\"Concentrix Logo\" style=\"max-width: 130px; height: auto; display: block;\" />
+                        <img src=\"https://raw.githubusercontent.com/marcalexis05/gatepass/main/assets/logo-concentrix.png\" alt=\"Concentrix Logo\" width=\"130\" style=\"width: 100%; max-width: 130px; height: auto; display: block; border: 0;\" />
                     </td>
                     <td class=\"header-right\" style=\"width: 50%; text-align: right; vertical-align: middle; font-size: 11px; color: #000000; padding-bottom: 10px;\">
                         <div style=\"margin-bottom: 5px;\">
@@ -627,24 +685,28 @@ function get_concentrix_gatepass_html_template($gp, $sys_name, $visitor_sig_cid,
                 <tr>
                     <!-- Visitor Signature -->
                     <td style=\"width: 45%; text-align: center; vertical-align: bottom;\">
-                        <div style=\"min-height: 50px; padding: 0 5px; margin-bottom: 5px;\">
-                            {$visitor_sig_img}
+                        <div style=\"width: 220px; margin: 0 auto; text-align: center;\">
+                            <div style=\"min-height: 50px; padding: 0 5px; margin-bottom: 5px;\">
+                                {$visitor_sig_img}
+                            </div>
+                            <div style=\"border-top: 1.5px solid #000000; font-weight: bold; font-size: 12.5px; padding-top: 5px; color: #000000; word-wrap: break-word;\">
+                                {$gp['visitor_name']}
+                            </div>
+                            <div style=\"font-size: 10px; color: #475569; font-weight: bold; margin-top: 2px;\">Requestor Name and Signature</div>
                         </div>
-                        <div style=\"border-top: 1.5px solid #000000; font-weight: bold; font-size: 13px; padding-top: 5px; color: #000000;\">
-                            {$gp['visitor_name']}
-                        </div>
-                        <div style=\"font-size: 10px; color: #000000; font-weight: bold;\">Requestor Name and Signature</div>
                     </td>
                     <td class=\"signature-space\" style=\"width: 10%;\">&nbsp;</td>
                     <!-- IT Incharge Signature -->
                     <td style=\"width: 45%; text-align: center; vertical-align: bottom;\">
-                        <div style=\"min-height: 50px; padding: 0 5px; margin-bottom: 5px;\">
-                            {$admin_sig_img}
+                        <div style=\"width: 220px; margin: 0 auto; text-align: center;\">
+                            <div style=\"min-height: 50px; padding: 0 5px; margin-bottom: 5px;\">
+                                {$admin_sig_img}
+                            </div>
+                            <div style=\"border-top: 1.5px solid #000000; font-weight: bold; font-size: 12.5px; padding-top: 5px; color: #000000; word-wrap: break-word;\">
+                                {$manager_name_val}
+                            </div>
+                            <div style=\"font-size: 10px; color: #475569; font-weight: bold; margin-top: 2px;\">IT Incharge Name and Signature</div>
                         </div>
-                        <div style=\"border-top: 1.5px solid #000000; font-weight: bold; font-size: 13px; padding-top: 5px; color: #000000;\">
-                            {$manager_name_val}
-                        </div>
-                        <div style=\"font-size: 10px; color: #000000; font-weight: bold;\">IT Incharge Name and Signature</div>
                     </td>
                 </tr>
             </table>
@@ -654,13 +716,15 @@ function get_concentrix_gatepass_html_template($gp, $sys_name, $visitor_sig_cid,
                 <tr>
                     <td class=\"sec-signature-space\" style=\"width: 25%;\">&nbsp;</td>
                     <td style=\"width: 50%; text-align: center; vertical-align: bottom;\">
-                        <div style=\"min-height: 50px; padding: 0 5px; margin-bottom: 5px;\">
-                            {$security_sig_img}
+                        <div style=\"width: 220px; margin: 0 auto; text-align: center;\">
+                            <div style=\"min-height: 50px; padding: 0 5px; margin-bottom: 5px;\">
+                                {$security_sig_img}
+                            </div>
+                            <div style=\"border-top: 1.5px solid #000000; font-weight: bold; font-size: 12.5px; padding-top: 5px; color: #000000; word-wrap: break-word;\">
+                                {$security_name_val}
+                            </div>
+                            <div style=\"font-size: 10px; color: #475569; font-weight: bold; margin-top: 2px;\">Released By (Security)</div>
                         </div>
-                        <div style=\"border-top: 1.5px solid #000000; font-weight: bold; font-size: 13px; padding-top: 5px; color: #000000;\">
-                            {$security_name_val}
-                        </div>
-                        <div style=\"font-size: 10px; color: #000000; font-weight: bold;\">Released By (Security)</div>
                     </td>
                     <td class=\"sec-signature-space\" style=\"width: 25%;\">&nbsp;</td>
                 </tr>
@@ -718,6 +782,228 @@ function get_concentrix_gatepass_html_template($gp, $sys_name, $visitor_sig_cid,
             </div>
             
         </div>
+        <!--[if mso]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
+    </div>";
+}
+
+/**
+ * Returns a professional, responsive, and clean HTML email template for Check-In Confirmed notifications.
+ */
+function get_checkin_confirmed_email_template($gp, $sys_name, $role) {
+    $date_str = date('F j, Y', strtotime($gp['visit_date']));
+    $time_in_str = $gp['time_in'] ? date('h:i A', strtotime($gp['time_in'])) : date('h:i A');
+    
+    // Choose appropriate greeting and message depending on the role
+    if ($role === 'visitor') {
+        $title = "Check-In Confirmed";
+        $greeting = "Dear " . htmlspecialchars($gp['visitor_name']) . ",";
+        $message = "This email is to confirm that your check-in at Concentrix UP-1 has been successfully recorded. Thank you for completing the registration process.";
+        $extra_info = "<p style='margin: 15px 0 0 0; font-size: 13px; color: #475569;'>Please keep your digital gatepass accessible on your mobile device. You will need it to complete your check-out process with Security when leaving the premises.</p>";
+    } elseif ($role === 'security') {
+        $title = "Visitor Check-In — Security Notification";
+        $greeting = "Dear Security Team,";
+        $message = "We would like to respectfully bring to your attention that the following individual has successfully completed the check-in process at Concentrix UP-1. Kindly log this entry in the Material Movement Register as per standard protocol.";
+        $extra_info = "<p style='margin: 15px 0 0 0; font-size: 13px; color: #475569;'>Should you have any concerns regarding this entry, please do not hesitate to coordinate with the IT Incharge on duty. Thank you for your continued vigilance in keeping our premises secure.</p>";
+    } else {
+        // Admin
+        $title = "Visitor Check-In Notification";
+        $greeting = "Dear IT Team,";
+        $message = "Please be informed that visitor <strong>" . htmlspecialchars($gp['visitor_name']) . "</strong> has successfully checked in at our premises.";
+        $extra_info = "";
+    }
+    
+    $eid_lbl = $gp['eid'] ? "<tr>
+        <td style='padding: 6px 0; color: #475569; font-size: 13px; font-weight: bold; width: 35%;'>Employee ID (EID):</td>
+        <td style='padding: 6px 0; color: #0f172a; font-size: 13px;'>" . htmlspecialchars($gp['eid']) . "</td>
+    </tr>" : "";
+
+    return "
+    <style>
+        @media only screen and (max-width: 600px) {
+            .email-body {
+                padding: 15px 0 !important;
+            }
+            .content-div {
+                padding: 20px !important;
+            }
+        }
+    </style>
+    <div class='email-body' style='font-family: \"Inter\", Helvetica, Arial, sans-serif; background-color: #f8fafc; padding: 30px 0; margin: 0; color: #334155; line-height: 1.5;'>
+        <!--[if mso]>
+        <table align='center' border='0' cellpadding='0' cellspacing='0' width='550' style='width: 550px;'>
+        <tr>
+        <td>
+        <![endif]-->
+        <div style='max-width: 550px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;'>
+            
+            <!-- Header Concentrix Logo (No background color) -->
+            <div style='padding: 25px; text-align: center; border-bottom: 1px solid #e2e8f0;'>
+                <img src='https://raw.githubusercontent.com/marcalexis05/gatepass/main/assets/logo-concentrix.png' alt='Concentrix Logo' width='180' style='width: 100%; max-width: 180px; height: auto; display: block; margin: 0 auto; border: 0;' />
+            </div>
+            
+            <!-- Email Body Content -->
+            <div class='content-div' style='padding: 30px;'>
+                <p style='font-size: 14px; font-weight: bold; color: #0f172a; margin-top: 0;'>$greeting</p>
+                <p style='font-size: 14px; color: #334155; margin-bottom: 20px;'>$message</p>
+                
+                <!-- Information Card -->
+                <div style='background-color: #f1f5f9; border-radius: 8px; padding: 15px 20px; margin: 20px 0;'>
+                    <table style='width: 100%; border-collapse: collapse;'>
+                        <tr>
+                            <td style='padding: 6px 0; color: #475569; font-size: 13px; font-weight: bold; width: 35%;'>Gatepass No:</td>
+                            <td style='padding: 6px 0; color: #0f172a; font-size: 13px; font-weight: bold;'>" . htmlspecialchars($gp['gatepass_no']) . "</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 6px 0; color: #475569; font-size: 13px; font-weight: bold;'>Visitor Name:</td>
+                            <td style='padding: 6px 0; color: #0f172a; font-size: 13px;'>" . htmlspecialchars($gp['visitor_name']) . "</td>
+                        </tr>
+                        $eid_lbl
+                        <tr>
+                            <td style='padding: 6px 0; color: #475569; font-size: 13px; font-weight: bold;'>Department:</td>
+                            <td style='padding: 6px 0; color: #0f172a; font-size: 13px;'>" . htmlspecialchars($gp['department']) . "</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 6px 0; color: #475569; font-size: 13px; font-weight: bold;'>Check-In Time:</td>
+                            <td style='padding: 6px 0; color: #0f172a; font-size: 13px; font-weight: bold;'>$time_in_str ($date_str)</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div style='font-size: 13px; color: #475569;'>
+                    $extra_info
+                </div>
+                
+                <p style='font-size: 13px; color: #475569; margin-top: 25px;'>
+                    Best regards,<br/>
+                    <strong>Concentrix UP-1 Team</strong>
+                </p>
+            </div>
+            
+            <!-- Footer disclaimer -->
+            <div style='background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 11px;'>
+                This is an automated notification from the Concentrix Gatepass System. Please do not reply directly to this message.
+            </div>
+        </div>
+        <!--[if mso]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
+    </div>";
+}
+
+/**
+ * Returns a professional, responsive, and clean HTML email template for Check-Out Confirmed notifications.
+ */
+function get_checkout_confirmed_email_template($gp, $sys_name, $role) {
+    $date_str = date('F j, Y', strtotime($gp['visit_date']));
+    $time_in_str = $gp['time_in'] ? date('h:i A', strtotime($gp['time_in'])) : 'N/A';
+    $time_out_str = $gp['time_out'] ? date('h:i A', strtotime($gp['time_out'])) : date('h:i A');
+    
+    // Choose appropriate greeting and message depending on the role
+    if ($role === 'visitor') {
+        $title = "Check-Out Confirmed";
+        $greeting = "Dear " . htmlspecialchars($gp['visitor_name']) . ",";
+        $message = "This email is to confirm that your check-out at Concentrix UP-1 has been successfully recorded. Thank you for your visit!";
+        $extra_info = "<p style='margin: 15px 0 0 0; font-size: 13px; color: #475569;'>We hope you had a pleasant visit. Have a safe journey home!</p>";
+    } elseif ($role === 'security') {
+        $title = "Visitor Check-Out — Security Notification";
+        $greeting = "Dear Security Team,";
+        $message = "We would like to respectfully inform you that the following individual has completed the check-out process and has exited the Concentrix UP-1 premises. Kindly ensure this egress is properly recorded in the Material Movement Register in accordance with standard security procedures.";
+        $extra_info = "<p style='margin: 15px 0 0 0; font-size: 13px; color: #475569;'>Please verify that all declared materials have been accounted for and that the gatepass has been properly signed and logged. Thank you for your dedication and professionalism in maintaining the security of our premises.</p>";
+    } else {
+        // Admin
+        $title = "Visitor Check-Out Notification";
+        $greeting = "Dear IT Team,";
+        $message = "Please be informed that visitor <strong>" . htmlspecialchars($gp['visitor_name']) . "</strong> has successfully checked out of our premises.";
+        $extra_info = "";
+    }
+    
+    $eid_lbl = $gp['eid'] ? "<tr>
+        <td style='padding: 6px 0; color: #475569; font-size: 13px; font-weight: bold; width: 35%;'>Employee ID (EID):</td>
+        <td style='padding: 6px 0; color: #0f172a; font-size: 13px;'>" . htmlspecialchars($gp['eid']) . "</td>
+    </tr>" : "";
+
+    return "
+    <style>
+        @media only screen and (max-width: 600px) {
+            .email-body {
+                padding: 15px 0 !important;
+            }
+            .content-div {
+                padding: 20px !important;
+            }
+        }
+    </style>
+    <div class='email-body' style='font-family: \"Inter\", Helvetica, Arial, sans-serif; background-color: #f8fafc; padding: 30px 0; margin: 0; color: #334155; line-height: 1.5;'>
+        <!--[if mso]>
+        <table align='center' border='0' cellpadding='0' cellspacing='0' width='550' style='width: 550px;'>
+        <tr>
+        <td>
+        <![endif]-->
+        <div style='max-width: 550px; margin: 0 auto; background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05); border: 1px solid #e2e8f0;'>
+            
+            <!-- Header Concentrix Logo (No background color) -->
+            <div style='padding: 25px; text-align: center; border-bottom: 1px solid #e2e8f0;'>
+                <img src='https://raw.githubusercontent.com/marcalexis05/gatepass/main/assets/logo-concentrix.png' alt='Concentrix Logo' width='180' style='width: 100%; max-width: 180px; height: auto; display: block; margin: 0 auto; border: 0;' />
+            </div>
+            
+            <!-- Email Body Content -->
+            <div class='content-div' style='padding: 30px;'>
+                <p style='font-size: 14px; font-weight: bold; color: #0f172a; margin-top: 0;'>$greeting</p>
+                <p style='font-size: 14px; color: #334155; margin-bottom: 20px;'>$message</p>
+                
+                <!-- Information Card -->
+                <div style='background-color: #f1f5f9; border-radius: 8px; padding: 15px 20px; margin: 20px 0;'>
+                    <table style='width: 100%; border-collapse: collapse;'>
+                        <tr>
+                            <td style='padding: 6px 0; color: #475569; font-size: 13px; font-weight: bold; width: 35%;'>Gatepass No:</td>
+                            <td style='padding: 6px 0; color: #0f172a; font-size: 13px; font-weight: bold;'>" . htmlspecialchars($gp['gatepass_no']) . "</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 6px 0; color: #475569; font-size: 13px; font-weight: bold;'>Visitor Name:</td>
+                            <td style='padding: 6px 0; color: #0f172a; font-size: 13px;'>" . htmlspecialchars($gp['visitor_name']) . "</td>
+                        </tr>
+                        $eid_lbl
+                        <tr>
+                            <td style='padding: 6px 0; color: #475569; font-size: 13px; font-weight: bold;'>Department:</td>
+                            <td style='padding: 6px 0; color: #0f172a; font-size: 13px;'>" . htmlspecialchars($gp['department']) . "</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 6px 0; color: #475569; font-size: 13px; font-weight: bold;'>Check-In Time:</td>
+                            <td style='padding: 6px 0; color: #0f172a; font-size: 13px;'>$time_in_str ($date_str)</td>
+                        </tr>
+                        <tr>
+                            <td style='padding: 6px 0; color: #475569; font-size: 13px; font-weight: bold;'>Check-Out Time:</td>
+                            <td style='padding: 6px 0; color: #ef4444; font-size: 13px; font-weight: bold;'>$time_out_str ($date_str)</td>
+                        </tr>
+                    </table>
+                </div>
+                
+                <div style='font-size: 13px; color: #475569;'>
+                    $extra_info
+                </div>
+                
+                <p style='font-size: 13px; color: #475569; margin-top: 25px;'>
+                    Best regards,<br/>
+                    <strong>Concentrix UP-1 Team</strong>
+                </p>
+            </div>
+            
+            <!-- Footer disclaimer -->
+            <div style='background-color: #f8fafc; padding: 20px; text-align: center; border-top: 1px solid #e2e8f0; color: #94a3b8; font-size: 11px;'>
+                This is an automated notification from the Concentrix Gatepass System. Please do not reply directly to this message.
+            </div>
+        </div>
+        <!--[if mso]>
+        </td>
+        </tr>
+        </table>
+        <![endif]-->
     </div>";
 }
 ?>

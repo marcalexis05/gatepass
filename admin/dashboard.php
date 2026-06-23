@@ -44,7 +44,7 @@ if (!empty($search)) {
     $sub_clauses = [];
     $word_idx = 0;
     foreach ($words as $word) {
-        $cols = ['visitor_name', 'gatepass_no', 'visitor_email', 'visitor_phone', 'eid', 'company_org', 'purpose', 'host_name', 'department', 'material_desc', 'material_brand', 'material_serial'];
+        $cols = ['visitor_name', 'gatepass_no', 'visitor_email', 'eid', 'purpose', 'department', 'material_desc', 'material_brand', 'material_serial'];
         $clauses = [];
         $i = 0;
         foreach ($cols as $col) {

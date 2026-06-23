@@ -112,7 +112,7 @@ require_once __DIR__ . '/includes/header.php';
                                             <div class="flex items-center justify-between gap-2">
                                                 <div class="min-w-0">
                                                     <span class="block text-xs font-bold text-white group-hover:text-brand-teal transition-colors font-mono truncate"><?php echo htmlspecialchars($p_no); ?></span>
-                                                    <span class="block text-[9px] text-slate-500 mt-0.5 truncate"><?php echo htmlspecialchars($p_date); ?> &bull; Host: <?php echo htmlspecialchars($p['host_name'] ?: 'N/A'); ?></span>
+                                                    <span class="block text-[9px] text-slate-500 mt-0.5 truncate"><?php echo htmlspecialchars($p_date); ?></span>
                                                 </div>
                                                 <div class="text-right flex-shrink-0">
                                                     <span class="inline-block px-2 py-0.5 rounded-full text-[8px] font-bold border 
