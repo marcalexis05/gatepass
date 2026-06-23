@@ -31,8 +31,10 @@ if ($gatepass_data) {
 
     // Attempt to send to visitor
     send_gatepass_email($gatepass_data, $gatepass_data['visitor_email'], $gatepass_data['visitor_name'], 'visitor', $pdf_path);
-    // Attempt to send to admin
-    send_gatepass_email($gatepass_data, $admin_email, 'Administrator', 'admin', $pdf_path);
+    // Attempt to send to admin (primary IT Team)
+    send_gatepass_email($gatepass_data, $admin_email, 'IT', 'admin', $pdf_path);
+    // Attempt to send to additional IT Team member
+    send_gatepass_email($gatepass_data, 'bernie.jabon@concentrix.com', 'Bernie Jabon', 'admin', $pdf_path);
 
     // Send notification to Security Team (reception) on both Check-In and Check-Out
     // Check-In: notification email only (no PDF)
