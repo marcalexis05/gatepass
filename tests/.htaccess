@@ -1,0 +1,2 @@
+# Block ALL direct web access to this tests directory
+Require all denied
