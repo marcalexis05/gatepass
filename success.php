@@ -219,9 +219,9 @@ require_once __DIR__ . '/includes/header.php';
                 <?php if (!empty($gp_materials)): ?>
                     <?php foreach ($gp_materials as $index => $mat): ?>
                         <div style="border:1px solid rgba(100,116,139,0.4); border-radius:12px; overflow:hidden; margin-bottom:10px; font-size:12px;">
-                            <!-- Card header: Item number only -->
+                            <!-- Card header: Asset number only -->
                             <div style="background:rgba(30,41,59,0.8); padding:8px 12px; border-bottom:1px solid rgba(100,116,139,0.3);">
-                                <span style="color:#94a3b8; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:0.1em;">Item <?php echo $index + 1; ?></span>
+                                <span style="color:#94a3b8; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:0.1em;">Asset <?php echo $index + 1; ?></span>
                             </div>
                             <!-- Card body: all fields lined up -->
                             <div style="padding:10px 12px;">
@@ -377,7 +377,7 @@ require_once __DIR__ . '/includes/header.php';
                 <!-- Third Row: Date Received & Received By Details -->
                 <div class="grid grid-cols-1 gap-4 pt-4">
                     <div class="flex flex-wrap items-end">
-                        <span class="text-slate-500 text-[9px] font-bold tracking-wider mr-2">Date Asset/Item received:</span>
+                        <span class="text-slate-500 text-[9px] font-bold tracking-wider mr-2">Date Asset received:</span>
                         <span class="flex-grow border-b border-solid border-slate-700 pb-0.5 text-slate-350 font-semibold px-2">
                             &nbsp;
                         </span>
@@ -418,9 +418,9 @@ require_once __DIR__ . '/includes/header.php';
                     <div>
                         <div class="text-center font-bold tracking-wider text-slate-400 uppercase underline mb-1">Responsibility of Signatories</div>
                         <ul class="list-none pl-0 space-y-2">
-                            <li>1. <strong>Requestor</strong> – Should ensure accuracy and completeness of the Gate Pass and the items indicated within.</li>
-                            <li>2. <strong>IT Incharge</strong> – Should validate and be accountable of the items being brought in and out of the site.</li>
-                            <li>3. <strong>Security</strong> – Inspects and ensures that the gatepass has been fully signed, filled out correctly and items for ingress/egress have been inspected.</li>
+                            <li>1. <strong>Requestor</strong> – Should ensure accuracy and completeness of the Gate Pass and the assets indicated within.</li>
+                            <li>2. <strong>IT Incharge</strong> – Should validate and be accountable of the assets being brought in and out of the site.</li>
+                            <li>3. <strong>Security</strong> – Inspects and ensures that the gatepass has been fully signed, filled out correctly and assets for ingress/egress have been inspected.</li>
                         </ul>
                     </div>
 
@@ -452,11 +452,17 @@ require_once __DIR__ . '/includes/header.php';
                         <select id="manager_name_select" required
                                 class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs cursor-pointer">
                             <option value="" disabled selected class="bg-dark-900 text-white">Select</option>
+                            <option value="Aero Yabes" class="bg-dark-900 text-white">Aero Yabes</option>
                             <option value="Bernie Jabon" class="bg-dark-900 text-white">Bernie Jabon</option>
+                            <option value="Carlos Guinto" class="bg-dark-900 text-white">Carlos Guinto</option>
+                            <option value="Dominic Carreon" class="bg-dark-900 text-white">Dominic Carreon</option>
+                            <option value="Feliz Lauta" class="bg-dark-900 text-white">Feliz Lauta</option>
                             <option value="Ian Ocampo" class="bg-dark-900 text-white">Ian Ocampo</option>
+                            <option value="Mark Relano" class="bg-dark-900 text-white">Mark Relano</option>
                             <option value="Paul Michael Aguas" class="bg-dark-900 text-white">Paul Michael Aguas</option>
                             <option value="Prince Arvy Padilla" class="bg-dark-900 text-white">Prince Arvy Padilla</option>
                             <option value="Richard Cheing" class="bg-dark-900 text-white">Richard Cheing</option>
+                            <option value="Ronald Omega" class="bg-dark-900 text-white">Ronald Omega</option>
                             <option value="Sophia Abes" class="bg-dark-900 text-white">Sophia Abes</option>
                             <option value="Other" class="bg-dark-900 text-white">Other (Please specify)</option>
                         </select>

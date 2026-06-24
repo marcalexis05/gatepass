@@ -428,7 +428,7 @@ function generate_gatepass_pdf($gp) {
     // Received Info
     $pdf->SetXY(12, 172);
     $pdf->SetFont('Arial', 'B', 7.5);
-    $pdf->Cell(34, 4, 'Date Asset/Item received:', 0, 0, 'L');
+    $pdf->Cell(34, 4, 'Date Asset received:', 0, 0, 'L');
     $pdf->Cell(152, 4, '', 0, 1, 'L');
     $pdf->DottedLine(46, 176, 198, 176);
     
@@ -490,7 +490,7 @@ function generate_gatepass_pdf($gp) {
     $pdf->Cell($label_w, 4.5, 'Requestor', 0, 0, 'L');
     $pdf->SetFont('Arial', '', 8.5);
     $current_x = $pdf->GetX();
-    $pdf->MultiCell(190 - $current_x, 4.5, ' - Should ensure accuracy and completeness of the Gate Pass and the items indicated within.', 0, 'L');
+    $pdf->MultiCell(190 - $current_x, 4.5, ' - Should ensure accuracy and completeness of the Gate Pass and the assets indicated within.', 0, 'L');
     
     // IT Incharge
     $pdf->SetX(15);
@@ -500,7 +500,7 @@ function generate_gatepass_pdf($gp) {
     $pdf->Cell($label_w, 4.5, 'IT Incharge', 0, 0, 'L');
     $pdf->SetFont('Arial', '', 8.5);
     $current_x = $pdf->GetX();
-    $pdf->MultiCell(190 - $current_x, 4.5, ' - Should validate and be accountable of the items being brought in and out of the site.', 0, 'L');
+    $pdf->MultiCell(190 - $current_x, 4.5, ' - Should validate and be accountable of the assets being brought in and out of the site.', 0, 'L');
     
     // Security
     $pdf->SetX(15);
@@ -510,7 +510,7 @@ function generate_gatepass_pdf($gp) {
     $pdf->Cell($label_w, 4.5, 'Security', 0, 0, 'L');
     $pdf->SetFont('Arial', '', 8.5);
     $current_x = $pdf->GetX();
-    $pdf->MultiCell(190 - $current_x, 4.5, ' - Inspects and ensures that the gatepass has been signed, filled out correctly and items for ingress/egress have been inspected.', 0, 'L');
+    $pdf->MultiCell(190 - $current_x, 4.5, ' - Inspects and ensures that the gatepass has been signed, filled out correctly and assets for ingress/egress have been inspected.', 0, 'L');
     
     $pdf->Ln(1.5);
     $txt = 'FOR RETURNABLE MATERIAL:';

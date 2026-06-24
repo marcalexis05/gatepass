@@ -67,7 +67,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } else {
         $raw_items = $_POST['items'] ?? [];
         if (empty($raw_items) || !is_array($raw_items)) {
-            $errors['items'] = "At least one material item must be declared.";
+            $errors['items'] = "At least one material asset must be declared.";
         } else {
             foreach ($raw_items as $index => $raw_item) {
                 $item_purpose = trim($raw_item['purpose'] ?? '');
@@ -391,7 +391,7 @@ require_once __DIR__ . '/includes/header.php';
                 <!-- Declare Multiple Items Checkbox Switch -->
                 <div class="mb-6 p-4 rounded-xl bg-dark-950/40 border border-dark-800/60 flex items-center justify-between">
                     <div class="space-y-0.5 pr-4">
-                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200">Declare Multiple Items</h4>
+                        <h4 class="text-xs font-bold uppercase tracking-wider text-slate-200">Declare Multiple Assets</h4>
                         <p class="text-[10px] text-slate-500">Enable this if you have more than one device or asset to log under this pass.</p>
                     </div>
                     <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 select-none">
@@ -772,7 +772,7 @@ document.addEventListener('DOMContentLoaded', () => {
         clone.querySelector('.remove-item-btn').addEventListener('click', () => {
             const cards = materialsList.querySelectorAll('.material-item-card');
             if (cards.length <= 1) {
-                alert("At least one material item is required.");
+                alert("At least one material asset is required.");
                 return;
             }
             card.remove();
@@ -1218,7 +1218,7 @@ document.addEventListener('DOMContentLoaded', () => {
         if (isMultiple) {
             const cards = materialsList.querySelectorAll('.material-item-card');
             if (cards.length === 0) {
-                errors.push("At least one material item must be added.");
+                errors.push("At least one material asset must be added.");
             } else {
                 cards.forEach((card, idx) => {
                     const num = idx + 1;

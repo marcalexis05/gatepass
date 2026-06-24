@@ -738,7 +738,7 @@ function get_concentrix_gatepass_html_template($gp, $sys_name, $visitor_sig_cid,
             <!-- Ingress Details -->
             <table style=\"width: 100%; border-collapse: collapse; margin-bottom: 20px; font-size: 11px; color: #000000;\">
                 <tr>
-                    <td style=\"padding: 4px 0; font-weight: bold; width: 30%;\">Date Asset/Item received:</td>
+                    <td style=\"padding: 4px 0; font-weight: bold; width: 30%;\">Date Asset received:</td>
                     <td style=\"padding: 4px 0; border-bottom: 1px solid #94a3b8; color: #000; width: 70%;\">
                         {$ingress_date_val}
                     </td>
@@ -769,9 +769,9 @@ function get_concentrix_gatepass_html_template($gp, $sys_name, $visitor_sig_cid,
                 
                 <div style=\"text-align: center; font-weight: bold; text-decoration: underline; color: #000000; margin-bottom: 6px;\">RESPONSIBILITY OF SIGNATORIES</div>
                 <ol style=\"margin: 0 0 10px 0; padding-left: 20px; line-height: 1.4;\">
-                    <li><strong>Requestor</strong> - Should ensure accuracy and completeness of the Gate Pass and the items indicated within.</li>
-                    <li><strong>IT Incharge</strong> - Should validate and be accountable of the items being brought in and out of the site.</li>
-                    <li><strong>Security</strong> - Inspects and ensures that the gatepass has been signed, filled out correctly and items for ingress/egress have been inspected.</li>
+                    <li><strong>Requestor</strong> - Should ensure accuracy and completeness of the Gate Pass and the assets indicated within.</li>
+                    <li><strong>IT Incharge</strong> - Should validate and be accountable of the assets being brought in and out of the site.</li>
+                    <li><strong>Security</strong> - Inspects and ensures that the gatepass has been signed, filled out correctly and assets for ingress/egress have been inspected.</li>
                 </ol>
                 
                 <div style=\"text-align: center; font-weight: bold; text-decoration: underline; color: #000000; margin-bottom: 6px;\">FOR RETURNABLE MATERIAL</div>
