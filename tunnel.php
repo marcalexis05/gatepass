@@ -1,6 +1,6 @@
 <?php
 /**
- * GatePass Pro - Public Web Tunnel Utility (Serveo Edition)
+ * Concentrix | Gatepass - Public Web Tunnel Utility (Serveo Edition)
  * 
  * Exposes local web server to the public internet using a static Serveo.net subdomain.
  */
@@ -34,7 +34,7 @@ if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
 }
 
 echo "=================================================================\n";
-echo "           GATEPASS PRO - SECURE PUBLIC INTERNET TUNNEL          \n";
+echo "       CONCENTRIX | GATEPASS - SECURE PUBLIC INTERNET TUNNEL     \n";
 echo "=================================================================\n";
 echo "Initializing secure reverse proxy tunnel via Serveo...\n";
 echo "Please keep this window open while using the system externally.\n";

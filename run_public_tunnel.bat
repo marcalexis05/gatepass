@@ -18,8 +18,8 @@ if "!TUNNEL_SILENT!"=="true" (
     exit /b
 )
 
-title GatePass Pro - Public Web Tunnel
-echo Starting GatePass Pro Public Web Tunnel...
+title Concentrix ^| Gatepass - Public Web Tunnel
+echo Starting Concentrix ^| Gatepass Public Web Tunnel...
 echo Make sure XAMPP Apache and MySQL are running first!
 echo.
 c:\xampp\php\php.exe tunnel.php
