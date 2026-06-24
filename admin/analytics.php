@@ -72,18 +72,18 @@ try {
 
     <!-- Charts Grid -->
     <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Status 3D Pie Chart -->
+        <!-- Status Donut Chart -->
         <div class="glass-card p-6 rounded-[24px] border border-white/10 relative overflow-hidden bg-dark-900/40 backdrop-blur-xl">
             <h2 class="text-base font-bold text-white tracking-tight mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-chart-pie text-brand-teal"></i> Gatepass Status Distribution (3D)
+                <i class="fa-solid fa-chart-pie text-brand-teal"></i> Gatepass Status Distribution
             </h2>
             <div id="status-3d-pie" style="height: 380px;"></div>
         </div>
 
-        <!-- Department 3D Column Chart -->
+        <!-- Department Column Chart -->
         <div class="glass-card p-6 rounded-[24px] border border-white/10 relative overflow-hidden bg-dark-900/40 backdrop-blur-xl">
             <h2 class="text-base font-bold text-white tracking-tight mb-4 flex items-center gap-2">
-                <i class="fa-solid fa-chart-column text-brand-teal"></i> Top Departments by Visitor Count (3D)
+                <i class="fa-solid fa-chart-column text-brand-teal"></i> Top Departments by Visitor Count
             </h2>
             <div id="dept-3d-column" style="height: 380px;"></div>
         </div>
@@ -92,20 +92,30 @@ try {
     <!-- Trend Chart -->
     <div class="glass-card p-6 rounded-[24px] border border-white/10 relative overflow-hidden bg-dark-900/40 backdrop-blur-xl">
         <h2 class="text-base font-bold text-white tracking-tight mb-4 flex items-center gap-2">
-            <i class="fa-solid fa-chart-line text-brand-teal"></i> Visitor Arrival Trend (Last 7 Days) (3D)
+            <i class="fa-solid fa-chart-line text-brand-teal"></i> Visitor Arrival Trend (Last 7 Days)
         </h2>
         <div id="trend-3d-spline" style="height: 400px;"></div>
     </div>
 </div>
 
-<!-- Highcharts Script Loader -->
-<script src="https://code.highcharts.com/highcharts.js"></script>
-<script src="https://code.highcharts.com/highcharts-3d.js"></script>
-<script src="https://code.highcharts.com/modules/exporting.js"></script>
+<!-- Highcharts Script Loader (Local Fallback for Offline / Sandbox environments) -->
+<script src="../assets/js/highcharts.js"></script>
+<script src="../assets/js/highcharts-3d.js"></script>
+<script src="../assets/js/highcharts-exporting.js"></script>
 
 <script>
+// Gradient helper function for premium theme
+const createGradient = (color1, color2) => {
+    return {
+        linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+        stops: [
+            [0, color1],
+            [1, color2]
+        ]
+    };
+};
+
 Highcharts.setOptions({
-    colors: ['#25e2cc', '#c4d600', '#e86e25', '#00f5d4', '#94a3b8', '#7209b7', '#4cc9f0'],
     chart: {
         backgroundColor: 'transparent',
         style: {
@@ -119,11 +129,12 @@ Highcharts.setOptions({
         enabled: false
     },
     tooltip: {
-        backgroundColor: 'rgba(1, 21, 26, 0.9)',
-        borderColor: 'rgba(37, 226, 204, 0.3)',
-        borderRadius: 16,
+        backgroundColor: 'rgba(1, 21, 26, 0.95)',
+        borderColor: 'rgba(37, 226, 204, 0.15)',
+        borderRadius: 12,
         borderWidth: 1,
-        shadow: true,
+        shadow: false,
+        useHTML: true,
         style: {
             color: '#e2e8f0',
             fontSize: '12px'
@@ -131,30 +142,25 @@ Highcharts.setOptions({
     }
 });
 
-// Helper color map for statuses
+// Define modern gradient colors for statuses
 const statusColorMap = {
-    'Pending': '#c4d600',
-    'Approved': '#25e2cc',
-    'Rejected': '#e86e25',
-    'Checked In': '#00f5d4',
-    'Checked Out': '#94a3b8'
+    'Pending': createGradient('#f59e0b', '#d97706'),      // Amber
+    'Approved': createGradient('#25e2cc', '#0284c7'),     // Cyan/Sky
+    'Checked In': createGradient('#10b981', '#047857'),   // Emerald
+    'Checked Out': createGradient('#94a3b8', '#475569'),  // Slate
+    'Rejected': createGradient('#f43f5e', '#be123c')      // Rose
 };
 
-// 1. Status 3D Donut Chart
+// 1. Status Donut Chart
 Highcharts.chart('status-3d-pie', {
     chart: {
-        type: 'pie',
-        options3d: {
-            enabled: true,
-            alpha: 55,
-            beta: 15,
-            depth: 45
-        }
+        type: 'pie'
     },
     plotOptions: {
         pie: {
-            innerSize: '55%',
-            depth: 35,
+            innerSize: '65%',
+            borderWidth: 2,
+            borderColor: '#01151a',
             allowPointSelect: true,
             cursor: 'pointer',
             dataLabels: {
@@ -175,36 +181,42 @@ Highcharts.chart('status-3d-pie', {
             { 
                 name: '<?php echo htmlspecialchars($row['status']); ?>', 
                 y: <?php echo (int)$row['count']; ?>,
-                color: statusColorMap['<?php echo htmlspecialchars($row['status']); ?>'] || '#25e2cc'
+                color: statusColorMap['<?php echo htmlspecialchars($row['status']); ?>'] || createGradient('#25e2cc', '#0284c7')
             },
             <?php endforeach; ?>
         ]
     }]
 });
 
-// 2. Department 3D Column Chart
+// Department color palette with glowing modern gradients
+const deptColors = [
+    createGradient('#25e2cc', '#0e9488'), // Teal
+    createGradient('#3b82f6', '#1d4ed8'), // Blue
+    createGradient('#8b5cf6', '#6d28d9'), // Purple
+    createGradient('#ec4899', '#be185d'), // Pink
+    createGradient('#f59e0b', '#d97706'), // Amber
+    createGradient('#10b981', '#047857'), // Emerald
+    createGradient('#06b6d4', '#0891b2'), // Cyan
+    createGradient('#6366f1', '#4f46e5')  // Indigo
+];
+
+// 2. Department Column Chart
 Highcharts.chart('dept-3d-column', {
     chart: {
-        type: 'column',
-        options3d: {
-            enabled: true,
-            alpha: 12,
-            beta: 10,
-            depth: 50,
-            viewDistance: 25
-        }
+        type: 'column'
     },
     legend: {
         enabled: false
     },
+    colors: deptColors,
     xAxis: {
         categories: [
             <?php foreach ($dept_data as $row): ?>
             '<?php echo htmlspecialchars($row['department']); ?>',
             <?php endforeach; ?>
         ],
-        gridLineColor: 'rgba(255, 255, 255, 0.03)',
-        lineColor: 'rgba(255, 255, 255, 0.1)',
+        gridLineColor: 'rgba(255, 255, 255, 0.02)',
+        lineColor: 'rgba(255, 255, 255, 0.08)',
         labels: {
             style: {
                 color: '#94a3b8',
@@ -220,8 +232,8 @@ Highcharts.chart('dept-3d-column', {
                 fontSize: '11px'
             }
         },
-        gridLineColor: 'rgba(255, 255, 255, 0.05)',
-        lineColor: 'rgba(255, 255, 255, 0.1)',
+        gridLineColor: 'rgba(255, 255, 255, 0.04)',
+        lineColor: 'rgba(255, 255, 255, 0.08)',
         labels: {
             style: {
                 color: '#94a3b8'
@@ -230,9 +242,9 @@ Highcharts.chart('dept-3d-column', {
     },
     plotOptions: {
         column: {
-            depth: 35,
-            colorByPoint: true,
-            borderRadius: 4
+            borderRadius: 6,
+            borderWidth: 0,
+            colorByPoint: true
         }
     },
     series: [{
@@ -245,29 +257,23 @@ Highcharts.chart('dept-3d-column', {
     }]
 });
 
-// 3. Trend 3D Chart
+// 3. Trend Areaspline Chart
 Highcharts.chart('trend-3d-spline', {
     chart: {
-        type: 'column',
-        options3d: {
-            enabled: true,
-            alpha: 10,
-            beta: 8,
-            depth: 40,
-            viewDistance: 25
-        }
+        type: 'areaspline'
     },
     legend: {
         enabled: false
     },
+    colors: ['#25e2cc'],
     xAxis: {
         categories: [
             <?php foreach ($weekly_data as $row): ?>
             '<?php echo date('M d', strtotime($row['visit_date'])); ?>',
             <?php endforeach; ?>
         ],
-        gridLineColor: 'rgba(255, 255, 255, 0.03)',
-        lineColor: 'rgba(255, 255, 255, 0.1)',
+        gridLineColor: 'rgba(255, 255, 255, 0.02)',
+        lineColor: 'rgba(255, 255, 255, 0.08)',
         labels: {
             style: {
                 color: '#94a3b8'
@@ -282,12 +288,35 @@ Highcharts.chart('trend-3d-spline', {
                 fontSize: '11px'
             }
         },
-        gridLineColor: 'rgba(255, 255, 255, 0.05)',
-        lineColor: 'rgba(255, 255, 255, 0.1)',
+        gridLineColor: 'rgba(255, 255, 255, 0.04)',
+        lineColor: 'rgba(255, 255, 255, 0.08)',
         labels: {
             style: {
                 color: '#94a3b8'
             }
+        }
+    },
+    plotOptions: {
+        areaspline: {
+            fillColor: {
+                linearGradient: { x1: 0, y1: 0, x2: 0, y2: 1 },
+                stops: [
+                    [0, 'rgba(37, 226, 204, 0.25)'],
+                    [1, 'rgba(37, 226, 204, 0.01)']
+                ]
+            },
+            marker: {
+                lineWidth: 2,
+                lineColor: '#25e2cc',
+                fillColor: '#01151A',
+                radius: 4,
+                states: {
+                    hover: {
+                        radius: 6
+                    }
+                }
+            },
+            lineWidth: 3
         }
     },
     series: [{

@@ -486,8 +486,22 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="space-y-3">
                                     <div class="space-y-1.5">
                                         <label for="manager_name" class="block text-xs font-bold text-slate-350 uppercase tracking-wide">Manager Full Name <span class="text-rose-500">*</span></label>
-                                        <input type="text" name="manager_name" id="manager_name" required placeholder="e.g. MARC ALEXIS EVANGELISTA"
-                                               class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                                        <input type="hidden" name="manager_name" id="manager_name">
+                                        <select id="manager_name_select" required
+                                                class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs cursor-pointer">
+                                            <option value="" disabled selected class="bg-dark-900 text-white">Select</option>
+                                            <option value="Bernie Jabon" class="bg-dark-900 text-white">Bernie Jabon</option>
+                                            <option value="Ian Ocampo" class="bg-dark-900 text-white">Ian Ocampo</option>
+                                            <option value="Paul Michael Aguas" class="bg-dark-900 text-white">Paul Michael Aguas</option>
+                                            <option value="Prince Arvy Padilla" class="bg-dark-900 text-white">Prince Arvy Padilla</option>
+                                            <option value="Richard Cheing" class="bg-dark-900 text-white">Richard Cheing</option>
+                                            <option value="Sophia Abes" class="bg-dark-900 text-white">Sophia Abes</option>
+                                            <option value="Other" class="bg-dark-900 text-white">Other (Please specify)</option>
+                                        </select>
+                                        <div id="custom_manager_name_container" class="hidden mt-2">
+                                            <input type="text" id="manager_name_custom" placeholder="Enter IT Incharge Name"
+                                                   class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                                        </div>
                                     </div>
 
                                     <div class="space-y-1.5">
@@ -521,8 +535,22 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="space-y-3">
                                     <div class="space-y-1.5">
                                         <label for="manager_name" class="block text-xs font-bold text-slate-355 uppercase tracking-wide">Manager Full Name <span class="text-rose-500">*</span></label>
-                                        <input type="text" name="manager_name" id="manager_name" required placeholder="e.g. MARC ALEXIS EVANGELISTA"
-                                               class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                                        <input type="hidden" name="manager_name" id="manager_name">
+                                        <select id="manager_name_select" required
+                                                class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs cursor-pointer">
+                                            <option value="" disabled selected class="bg-dark-900 text-white">Select</option>
+                                            <option value="Bernie Jabon" class="bg-dark-900 text-white">Bernie Jabon</option>
+                                            <option value="Ian Ocampo" class="bg-dark-900 text-white">Ian Ocampo</option>
+                                            <option value="Paul Michael Aguas" class="bg-dark-900 text-white">Paul Michael Aguas</option>
+                                            <option value="Prince Arvy Padilla" class="bg-dark-900 text-white">Prince Arvy Padilla</option>
+                                            <option value="Richard Cheing" class="bg-dark-900 text-white">Richard Cheing</option>
+                                            <option value="Sophia Abes" class="bg-dark-900 text-white">Sophia Abes</option>
+                                            <option value="Other" class="bg-dark-900 text-white">Other (Please specify)</option>
+                                        </select>
+                                        <div id="custom_manager_name_container" class="hidden mt-2">
+                                            <input type="text" id="manager_name_custom" placeholder="Enter IT Incharge Name"
+                                                   class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                                        </div>
                                     </div>
 
                                     <div class="space-y-1.5">
@@ -562,8 +590,22 @@ require_once __DIR__ . '/includes/header.php';
                                 <div class="space-y-3">
                                     <div class="space-y-1.5">
                                         <label for="manager_name" class="block text-xs font-bold text-slate-355 uppercase tracking-wide">Manager Full Name <span class="text-rose-500">*</span></label>
-                                        <input type="text" name="manager_name" id="manager_name" required placeholder="e.g. MARC ALEXIS EVANGELISTA"
-                                               class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                                        <input type="hidden" name="manager_name" id="manager_name">
+                                        <select id="manager_name_select" required
+                                                class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs cursor-pointer">
+                                            <option value="" disabled selected class="bg-dark-900 text-white">Select</option>
+                                            <option value="Bernie Jabon" class="bg-dark-900 text-white">Bernie Jabon</option>
+                                            <option value="Ian Ocampo" class="bg-dark-900 text-white">Ian Ocampo</option>
+                                            <option value="Paul Michael Aguas" class="bg-dark-900 text-white">Paul Michael Aguas</option>
+                                            <option value="Prince Arvy Padilla" class="bg-dark-900 text-white">Prince Arvy Padilla</option>
+                                            <option value="Richard Cheing" class="bg-dark-900 text-white">Richard Cheing</option>
+                                            <option value="Sophia Abes" class="bg-dark-900 text-white">Sophia Abes</option>
+                                            <option value="Other" class="bg-dark-900 text-white">Other (Please specify)</option>
+                                        </select>
+                                        <div id="custom_manager_name_container" class="hidden mt-2">
+                                            <input type="text" id="manager_name_custom" placeholder="Enter IT Incharge Name"
+                                                   class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                                        </div>
                                     </div>
 
                                     <div class="space-y-1.5">
@@ -594,8 +636,27 @@ require_once __DIR__ . '/includes/header.php';
                                         <label class="block text-xs font-bold text-slate-355 uppercase tracking-wide font-display">
                                             Security Guard Name <span class="text-rose-500 md:inline hidden">*</span>
                                         </label>
-                                        <input type="text" name="security_name" id="security_name" placeholder="Enter Security Name"
-                                               class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all text-xs">
+                                        <input type="hidden" name="security_name" id="security_name">
+                                        <select id="security_name_select" required
+                                                class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all text-xs cursor-pointer">
+                                            <option value="" disabled selected class="bg-dark-900 text-white">Select</option>
+                                            <option value="Aisara, Nadzmil" class="bg-dark-900 text-white">Aisara, Nadzmil</option>
+                                            <option value="Dela Cruz, Jobelson" class="bg-dark-900 text-white">Dela Cruz, Jobelson</option>
+                                            <option value="Ilao, Andrew" class="bg-dark-900 text-white">Ilao, Andrew</option>
+                                            <option value="Mallo, Mark Anthony" class="bg-dark-900 text-white">Mallo, Mark Anthony</option>
+                                            <option value="Mejia, Raymart" class="bg-dark-900 text-white">Mejia, Raymart</option>
+                                            <option value="Ong, Jeffry" class="bg-dark-900 text-white">Ong, Jeffry</option>
+                                            <option value="Rico, Francisco" class="bg-dark-900 text-white">Rico, Francisco</option>
+                                            <option value="Santos, Jayson" class="bg-dark-900 text-white">Santos, Jayson</option>
+                                            <option value="Tarrago, Niel Bryan" class="bg-dark-900 text-white">Tarrago, Niel Bryan</option>
+                                            <option value="Tumangil, John Paul" class="bg-dark-900 text-white">Tumangil, John Paul</option>
+                                            <option value="Villas, Cristian" class="bg-dark-900 text-white">Villas, Cristian</option>
+                                            <option value="Other" class="bg-dark-900 text-white">Other (Please specify)</option>
+                                        </select>
+                                        <div id="custom_security_name_container" class="hidden mt-2">
+                                            <input type="text" id="security_name_custom" placeholder="Enter Security Name"
+                                                   class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500 transition-all text-xs">
+                                        </div>
                                     </div>
 
                                     <div class="space-y-2">
@@ -664,6 +725,30 @@ function initVerifySignatures() {
         const sigInput = document.getElementById('manager_signature');
         const form = document.getElementById('admin-approve-form');
         let drawing = false;
+
+        // Setup dropdown logic for IT Incharge Name
+        const selectEl = document.getElementById('manager_name_select');
+        const customContainer = document.getElementById('custom_manager_name_container');
+        const customEl = document.getElementById('manager_name_custom');
+        const hiddenEl = document.getElementById('manager_name');
+
+        if (selectEl && customContainer && customEl && hiddenEl) {
+            function updateManagerName() {
+                if (selectEl.value === 'Other') {
+                    customContainer.classList.remove('hidden');
+                    customEl.required = true;
+                    hiddenEl.value = customEl.value.trim();
+                } else {
+                    customContainer.classList.add('hidden');
+                    customEl.required = false;
+                    hiddenEl.value = selectEl.value;
+                }
+            }
+
+            selectEl.addEventListener('change', updateManagerName);
+            customEl.addEventListener('input', updateManagerName);
+            updateManagerName();
+        }
 
         let lastWidth = 0;
         let lastHeight = 0;
@@ -850,6 +935,30 @@ function initVerifySignatures() {
         const sigInput = document.getElementById('security_signature');
         const form = document.getElementById('admin-checkout-form');
         let drawing = false;
+
+        // Setup dropdown logic for Security Guard Name
+        const selectEl = document.getElementById('security_name_select');
+        const customContainer = document.getElementById('custom_security_name_container');
+        const customEl = document.getElementById('security_name_custom');
+        const hiddenEl = document.getElementById('security_name');
+
+        if (selectEl && customContainer && customEl && hiddenEl) {
+            function updateSecurityName() {
+                if (selectEl.value === 'Other') {
+                    customContainer.classList.remove('hidden');
+                    customEl.required = true;
+                    hiddenEl.value = customEl.value.trim();
+                } else {
+                    customContainer.classList.add('hidden');
+                    customEl.required = false;
+                    hiddenEl.value = selectEl.value;
+                }
+            }
+
+            selectEl.addEventListener('change', updateSecurityName);
+            customEl.addEventListener('input', updateSecurityName);
+            updateSecurityName();
+        }
 
         let lastWidth = 0;
         let lastHeight = 0;

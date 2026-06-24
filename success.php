@@ -448,8 +448,22 @@ require_once __DIR__ . '/includes/header.php';
                 <div class="space-y-3">
                     <div class="space-y-1.5">
                         <label for="manager_name" class="block text-[10px] font-bold text-slate-350 uppercase tracking-wide">IT Incharge Full Name <span class="text-rose-500">*</span></label>
-                        <input type="text" name="manager_name" id="manager_name" required placeholder="e.g. MARC ALEXIS EVANGELISTA"
-                               class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                        <input type="hidden" name="manager_name" id="manager_name">
+                        <select id="manager_name_select" required
+                                class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs cursor-pointer">
+                            <option value="" disabled selected class="bg-dark-900 text-white">Select</option>
+                            <option value="Bernie Jabon" class="bg-dark-900 text-white">Bernie Jabon</option>
+                            <option value="Ian Ocampo" class="bg-dark-900 text-white">Ian Ocampo</option>
+                            <option value="Paul Michael Aguas" class="bg-dark-900 text-white">Paul Michael Aguas</option>
+                            <option value="Prince Arvy Padilla" class="bg-dark-900 text-white">Prince Arvy Padilla</option>
+                            <option value="Richard Cheing" class="bg-dark-900 text-white">Richard Cheing</option>
+                            <option value="Sophia Abes" class="bg-dark-900 text-white">Sophia Abes</option>
+                            <option value="Other" class="bg-dark-900 text-white">Other (Please specify)</option>
+                        </select>
+                        <div id="custom_manager_name_container" class="hidden mt-2">
+                            <input type="text" id="manager_name_custom" placeholder="Enter IT Incharge Name"
+                                   class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                        </div>
                     </div>
 
                     <div class="space-y-1.5">
@@ -529,6 +543,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const form = document.getElementById('manager-sign-form');
         const btn = document.getElementById('manager-sign-btn');
         let drawing = false;
+
+        // Setup dropdown logic for IT Incharge Name
+        const selectEl = document.getElementById('manager_name_select');
+        const customContainer = document.getElementById('custom_manager_name_container');
+        const customEl = document.getElementById('manager_name_custom');
+        const hiddenEl = document.getElementById('manager_name');
+
+        if (selectEl && customContainer && customEl && hiddenEl) {
+            function updateManagerName() {
+                if (selectEl.value === 'Other') {
+                    customContainer.classList.remove('hidden');
+                    customEl.required = true;
+                    hiddenEl.value = customEl.value.trim();
+                } else {
+                    customContainer.classList.add('hidden');
+                    customEl.required = false;
+                    hiddenEl.value = selectEl.value;
+                }
+            }
+
+            selectEl.addEventListener('change', updateManagerName);
+            customEl.addEventListener('input', updateManagerName);
+            updateManagerName();
+        }
 
         let lastWidth = 0;
         let lastHeight = 0;

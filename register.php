@@ -497,7 +497,7 @@ require_once __DIR__ . '/includes/header.php';
                     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 mb-6">
                         <!-- Material Description -->
                         <div class="space-y-1.5 lg:col-span-4" id="material-desc-container">
-                            <label for="material_desc" class="text-xs font-bold text-slate-300 uppercase tracking-wide lg:h-12 flex items-end pb-1">Material / Asset Description <span class="text-rose-500">*</span></label>
+                            <label for="material_desc" class="text-xs font-bold text-slate-300 uppercase tracking-wide lg:h-12 flex items-end pb-1"><span>Material / Asset Description <span class="text-rose-500">*</span></span></label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-laptop text-xs"></i></span>
                                 <select id="material_desc" name="material_desc" required
@@ -526,7 +526,7 @@ require_once __DIR__ . '/includes/header.php';
 
                         <!-- Material Brand -->
                         <div class="space-y-1.5 lg:col-span-3">
-                            <label for="material_brand" class="text-xs font-bold text-slate-300 uppercase tracking-wide lg:h-12 flex items-end pb-1">Material Brand <span class="text-rose-500">*</span></label>
+                            <label for="material_brand" class="text-xs font-bold text-slate-300 uppercase tracking-wide lg:h-12 flex items-end pb-1"><span>Material Brand <span class="text-rose-500">*</span></span></label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-tag text-xs"></i></span>
                                 <input type="text" id="material_brand" name="material_brand" required value="<?php echo htmlspecialchars($material_brand); ?>"
@@ -540,7 +540,7 @@ require_once __DIR__ . '/includes/header.php';
 
                         <!-- Material Serial No (S. No.) -->
                         <div class="space-y-1.5 lg:col-span-3">
-                            <label for="material_serial" class="text-xs font-bold text-slate-300 uppercase tracking-wide font-display lg:h-12 flex items-end pb-1">Material Serial / S. No. <span class="text-rose-500">*</span></label>
+                            <label for="material_serial" class="text-xs font-bold text-slate-300 uppercase tracking-wide font-display lg:h-12 flex items-end pb-1"><span>Material Serial / S. No. <span class="text-rose-500">*</span></span></label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-barcode text-xs"></i></span>
                                 <input type="text" id="material_serial" name="material_serial" required value="<?php echo htmlspecialchars($material_serial); ?>"
@@ -554,7 +554,7 @@ require_once __DIR__ . '/includes/header.php';
 
                         <!-- Material Qty -->
                         <div class="space-y-1.5 lg:col-span-2">
-                            <label for="material_qty" class="text-xs font-bold text-slate-300 uppercase tracking-wide lg:h-12 flex items-end pb-1">Quantity <span class="text-rose-500">*</span></label>
+                            <label for="material_qty" class="text-xs font-bold text-slate-300 uppercase tracking-wide lg:h-12 flex items-end pb-1"><span>Quantity <span class="text-rose-500">*</span></span></label>
                             <div class="relative">
                                 <span class="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500"><i class="fa-solid fa-arrow-up-1-9 text-xs"></i></span>
                                 <input type="number" id="material_qty" name="material_qty" min="1" required value="<?php echo htmlspecialchars($material_qty); ?>"
@@ -571,9 +571,15 @@ require_once __DIR__ . '/includes/header.php';
                     <label class="block text-xs font-bold text-slate-300 uppercase tracking-wide">Visitor Signature <span class="text-rose-500">*</span></label>
                     <div class="relative bg-dark-950/45 border border-dark-800/80 rounded-xl overflow-hidden shadow-inner">
                         <canvas id="signature-pad" class="w-full h-40 cursor-crosshair bg-transparent block"></canvas>
-                        <button type="button" id="clear-sig" class="absolute bottom-2 right-2 px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all">
-                            <i class="fa-solid fa-eraser mr-1"></i> Clear
-                        </button>
+                        <div class="absolute bottom-2 right-2 flex space-x-2">
+                            <button type="button" id="upload-sig-btn" class="px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all flex items-center justify-center">
+                                <i class="fa-solid fa-upload mr-1"></i> Upload
+                            </button>
+                            <button type="button" id="clear-sig" class="px-3 py-1 bg-slate-850 hover:bg-slate-700 text-slate-300 text-xs font-bold rounded-lg border border-slate-800 shadow transition-all flex items-center justify-center">
+                                <i class="fa-solid fa-eraser mr-1"></i> Clear
+                            </button>
+                        </div>
+                        <input type="file" id="sig-file-input" accept="image/*" class="hidden">
                     </div>
                     <?php if (isset($errors['visitor_signature'])): ?>
                         <p class="text-rose-400 text-[11px]"><?php echo $errors['visitor_signature']; ?></p>
@@ -1102,9 +1108,31 @@ document.addEventListener('DOMContentLoaded', () => {
     canvas.addEventListener('touchmove', draw, { passive: false });
     canvas.addEventListener('touchend', stopDrawing);
 
+    const fileInput = document.getElementById('sig-file-input');
+    const uploadBtn = document.getElementById('upload-sig-btn');
+
+    if (uploadBtn && fileInput) {
+        uploadBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', (e) => {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    sigInput.value = event.target.result;
+                    sigInput.dispatchEvent(new Event('change'));
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+    }
+
     clearBtn.addEventListener('click', () => {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         sigInput.value = '';
+        if (fileInput) fileInput.value = '';
     });
 
     // Custom Professional Validation Modal logic

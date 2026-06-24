@@ -202,8 +202,51 @@ require_once __DIR__ . '/includes/header.php';
                     </div>
                 </div>
 
-                <!-- Materials Table (with vertical borders extending down) -->
-                <div class="border border-slate-800 rounded-lg overflow-hidden mb-6 print-border-black">
+                <!-- Materials Section — Responsive -->
+
+                <!-- MOBILE CARD VIEW -->
+                <div class="gp-mobile-cards mb-6">
+                    <?php if (!empty($gp_materials)): ?>
+                        <?php foreach ($gp_materials as $index => $mat): ?>
+                            <div style="border:1px solid rgba(100,116,139,0.4); border-radius:12px; overflow:hidden; margin-bottom:10px; font-size:12px;">
+                                <!-- Card header: Item number only -->
+                                <div style="background:rgba(30,41,59,0.8); padding:8px 12px; border-bottom:1px solid rgba(100,116,139,0.3);">
+                                    <span style="color:#94a3b8; font-weight:700; font-size:10px; text-transform:uppercase; letter-spacing:0.1em;">Item <?php echo $index + 1; ?></span>
+                                </div>
+                                <!-- Card body: all fields lined up -->
+                                <div style="padding:10px 12px;">
+                                    <div style="display:flex; gap:8px; padding:5px 0; border-bottom:1px solid rgba(51,65,85,0.5);">
+                                        <span style="color:#64748b; font-weight:700; min-width:90px; flex-shrink:0;">Serial No.</span>
+                                        <span style="color:#cbd5e1; font-family:monospace; font-weight:600;"><?php echo htmlspecialchars($mat['material_serial'] ?: 'N/A'); ?></span>
+                                    </div>
+                                    <div style="display:flex; gap:8px; padding:5px 0; border-bottom:1px solid rgba(51,65,85,0.5);">
+                                        <span style="color:#64748b; font-weight:700; min-width:90px; flex-shrink:0;">Description</span>
+                                        <span style="color:#e2e8f0; font-weight:600;"><?php echo htmlspecialchars($mat['material_desc'] ?: 'N/A'); ?></span>
+                                    </div>
+                                    <div style="display:flex; gap:8px; padding:5px 0; border-bottom:1px solid rgba(51,65,85,0.5);">
+                                        <span style="color:#64748b; font-weight:700; min-width:90px; flex-shrink:0;">Brand</span>
+                                        <span style="color:#e2e8f0;"><?php echo htmlspecialchars($mat['material_brand'] ?: 'N/A'); ?></span>
+                                    </div>
+                                    <div style="display:flex; gap:8px; padding:5px 0; border-bottom:1px solid rgba(51,65,85,0.5);">
+                                        <span style="color:#64748b; font-weight:700; min-width:90px; flex-shrink:0;">Qty</span>
+                                        <span style="color:#e2e8f0; font-weight:700;"><?php echo htmlspecialchars($mat['material_qty'] ?: '1'); ?></span>
+                                    </div>
+                                    <?php if (!empty($mat['purpose']) && $mat['purpose'] !== '-'): ?>
+                                    <div style="display:flex; gap:8px; padding:5px 0;">
+                                        <span style="color:#64748b; font-weight:700; min-width:90px; flex-shrink:0;">Remarks</span>
+                                        <span style="color:#94a3b8; font-style:italic;"><?php echo htmlspecialchars($mat['purpose']); ?></span>
+                                    </div>
+                                    <?php endif; ?>
+                                </div>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div style="border:1px solid rgba(100,116,139,0.3); border-radius:12px; padding:16px; text-align:center; color:#64748b; font-style:italic; font-size:12px;">No materials declared</div>
+                    <?php endif; ?>
+                </div>
+
+                <!-- DESKTOP TABLE VIEW -->
+                <div class="gp-desktop-table border border-slate-800 rounded-lg overflow-hidden mb-6 print-border-black">
                     <table class="w-full text-left text-xs border-collapse table-fixed">
                         <thead>
                             <tr class="bg-slate-900/60 text-slate-400 font-extrabold tracking-wider print-border-black">
@@ -414,8 +457,27 @@ require_once __DIR__ . '/includes/header.php';
                             <label for="security_name" class="block text-xs font-bold text-slate-355 uppercase tracking-wide font-display">
                                 Security Guard Name <span class="text-rose-500">*</span>
                             </label>
-                            <input type="text" name="security_name" id="security_name" placeholder="Enter Security Name" required
-                                   class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                            <input type="hidden" name="security_name" id="security_name">
+                            <select id="security_name_select" required
+                                    class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs cursor-pointer">
+                                <option value="" disabled selected class="bg-dark-900 text-white">Select</option>
+                                <option value="Aisara, Nadzmil" class="bg-dark-900 text-white">Aisara, Nadzmil</option>
+                                <option value="Dela Cruz, Jobelson" class="bg-dark-900 text-white">Dela Cruz, Jobelson</option>
+                                <option value="Ilao, Andrew" class="bg-dark-900 text-white">Ilao, Andrew</option>
+                                <option value="Mallo, Mark Anthony" class="bg-dark-900 text-white">Mallo, Mark Anthony</option>
+                                <option value="Mejia, Raymart" class="bg-dark-900 text-white">Mejia, Raymart</option>
+                                <option value="Ong, Jeffry" class="bg-dark-900 text-white">Ong, Jeffry</option>
+                                <option value="Rico, Francisco" class="bg-dark-900 text-white">Rico, Francisco</option>
+                                <option value="Santos, Jayson" class="bg-dark-900 text-white">Santos, Jayson</option>
+                                <option value="Tarrago, Niel Bryan" class="bg-dark-900 text-white">Tarrago, Niel Bryan</option>
+                                <option value="Tumangil, John Paul" class="bg-dark-900 text-white">Tumangil, John Paul</option>
+                                <option value="Villas, Cristian" class="bg-dark-900 text-white">Villas, Cristian</option>
+                                <option value="Other" class="bg-dark-900 text-white">Other (Please specify)</option>
+                            </select>
+                            <div id="custom_security_name_container" class="hidden mt-2">
+                                <input type="text" id="security_name_custom" placeholder="Enter Security Name"
+                                       class="w-full px-4 py-2.5 bg-dark-900 border border-slate-800 rounded-xl text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition-all text-xs">
+                            </div>
                         </div>
 
                         <!-- Signature Canvas Box -->
@@ -453,6 +515,21 @@ require_once __DIR__ . '/includes/header.php';
             background: transparent !important;
             filter: invert(1) !important;
         }
+
+        /* =====================================================
+           RESPONSIVE MATERIALS — Mobile card / Desktop table
+           ===================================================== */
+
+        /* Default: show mobile cards, hide desktop table */
+        .gp-mobile-cards  { display: block; }
+        .gp-desktop-table { display: none;  }
+
+        /* At 640px+ (tablets / large phones landscape): switch to table */
+        @media (min-width: 640px) {
+            .gp-mobile-cards  { display: none;  }
+            .gp-desktop-table { display: block; }
+        }
+
         /* ===================================================
            PRINT: Force single A4 page — checkout.php
            =================================================== */
@@ -514,6 +591,13 @@ require_once __DIR__ . '/includes/header.php';
             header, footer, nav,
             .no-print {
                 display: none !important;
+            }
+            /* 5b. Print: hide mobile cards, force-show desktop table */
+            #gatepass-card .gp-mobile-cards {
+                display: none !important;
+            }
+            #gatepass-card .gp-desktop-table {
+                display: block !important;
             }
             /* 6. Inner card wrapper */
             #gatepass-card > div {
@@ -712,6 +796,30 @@ document.addEventListener('DOMContentLoaded', () => {
         const sigInput = document.getElementById('security_signature');
         const form = document.getElementById('admin-checkout-form');
         let drawing = false;
+
+        // Setup dropdown logic for Security Guard Name
+        const selectEl = document.getElementById('security_name_select');
+        const customContainer = document.getElementById('custom_security_name_container');
+        const customEl = document.getElementById('security_name_custom');
+        const hiddenEl = document.getElementById('security_name');
+
+        if (selectEl && customContainer && customEl && hiddenEl) {
+            function updateSecurityName() {
+                if (selectEl.value === 'Other') {
+                    customContainer.classList.remove('hidden');
+                    customEl.required = true;
+                    hiddenEl.value = customEl.value.trim();
+                } else {
+                    customContainer.classList.add('hidden');
+                    customEl.required = false;
+                    hiddenEl.value = selectEl.value;
+                }
+            }
+
+            selectEl.addEventListener('change', updateSecurityName);
+            customEl.addEventListener('input', updateSecurityName);
+            updateSecurityName();
+        }
 
         let lastWidth = 0;
         let lastHeight = 0;
